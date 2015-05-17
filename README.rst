@@ -12,7 +12,6 @@ Simple mapping
 The first stage is to map the reads to the genome. In this readme file it's assumed that the reads are paired-end but all the commands will work for single-end mapping.
 
 Run with::
-
     $ map_single_fragments.py  genome.fa -g annotations.gff -1 lib1_1.fastq[.gz] lib2_1.fastq[.gz] lib3_1.fastq[.gz] -2 lib1_2.fastq[.gz] lib2_2.fastq[.gz] -d output_dir -o output_head [-r] -m max_mismatches
 
 This script uses bwa to map the reads to the genome. You can specify two files for each library or one by using -2 or just -1. The order of the libraries in -2 should be the same as in -1 but can be shorter if some of the libraries are single-end sequenced (in this case the single-ends should be the last on -1 list). There are additional parameters that can be changed, see -h for additional help.
@@ -55,7 +54,6 @@ The interacting regions are searched by dividing the genome to 100 nt non-overla
 After the regions were determined they are decorated with additional data like genes in the region, if this is a known target, the counts of single fragments in the two genes etc.
 
 Run this with::
-
      $ pro_clash_significant_regions.py reads_in_list --ec_dir EcoCyc_dir --EC_chrlist "chr,COLI-K12" -t known_targets_file -c single_counts_file -r REP_elements_table
 
 There are more arguments, some mentioned above, other can be seen using -h. In order to get gene annotations you should get the EcoCyc flat files of your organism, they require registration, point the data directory with --ec_dir. The names of the chromosomes are probably different from the bam file (the genome.fa file you used for mapping) and the EcoCyc files. You can give the script a dictionary from the bam to EcoCyc using a comma separated list of names where the name in EcoCyc follows the name in the bam file.

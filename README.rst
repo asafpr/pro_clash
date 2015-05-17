@@ -12,4 +12,53 @@ Simple mapping
 The first stage is to map the reads to the genome. In this readme file it's assumed that the reads are paired-end but all the commands will work for single-end mapping.
 
 .. code-block:: console
-map_and_count.py -g genome.fa -a annotations.gff -1 reads_1.fastq[.gz] -2 reads_2.fastq[.gz] -o output_head -n wiggle_name -d "wiggle description"
+  $ map_single_fragments.py  genome.fa -g annotations.gff -1 lib1_1.fastq[.gz] lib2_1.fastq[.gz] lib3_1.fastq[.gz] -2 lib1_2.fastq[.gz] lib2_2.fastq[.gz] -d output_dir -o output_head [-r] -m max_mismatches
+
+This script uses bwa to map the reads to the genome. You can specify two files for each library or one by using -2 or just -1. The order of the libraries in -2 should be the same as in -1 but can be shorter if some of the libraries are single-end sequenced (in this case the single-ends should be the last on -1 list). There are additional parameters that can be changed, see -h for additional help.
+
+
+Chimera mapping
+---------------
+After we have a bam file for each library (either generated using map_single_fragments.py or any other mapper) we can look for chimeric reads.
+
+The search is done using the ends of the fragments that weren't properly mapped to the genome in the bam file. In the case of paired-end sequencing the first 25 nucleotides (or as specified by -l argument) are taken. In the case of single-end sequencing the first 25 and last 25 of each read are taken, make sure the two regions don't overlap or you won't get any results.
+
+After the two ends are extracted they are being mapped to the genome using bwa and screened again to see if they can be on the same transcript. In order to do so we allow a relatively large number of mismatches (3 by default, set with --max_mismatches) and test if any combination of the positions each read was mapped to can result from the same transcript. We remove pairs of reads that are 1000 nt apart and map in opposite directions either as expected or in reverse order (reads which result from circular RNAs, omit this option using --keep_circular). If the -t argument is given, the pairs are tested to see if they might reside from the same transcript even if they're distance is larger than 1000 nts. This option is very useful in screening rRNAs that sometimes come from long transcripts.
+
+After reads that might be concordant are removed, the lowest position on the chromosome of each read is collected if the read is mapped with at most 1 mismatch (set with --allowed_mismatches).
+
+For each pair of reads the output file will contain a line with the coordinates of the first read, the second read and the read name. All the bam files that were given as input will be joined to the same output file, they can be further separated using the read names. Alternatively, you can run each bam file separately and cat all the reads files.
+
+
+.. code-block:: console
+  $ map_chimeric_fragments.py genome.fa lib1_bwa.bam lib2_bwa.bam ...
+
+Here as above, paired-end and single-end sequencing results can be used.
+
+Reporting Over-represented Interacting Region
+---------------------------------------------
+Since the sequencing results contain non-specific chimeras, another stage is needed to remove the noise of the experiment. This is done by comparing the number of reads supporting an interaction to the number of reads expected at random. Simply put we compute a 2x2 contingency table with the number of reads like this:
+
+
+=============  ========  =============
+ #             region 1  other regions
+=============  ========  =============
+
+region 2         K            L
+
+other regions    M            N
+=============  ========  =============
+
+If K is larger than expected the two regions are probably in actual interaction
+*in vivo*. The odds ratio is computed by (K/L)/(M/N) and the p-value is computed using Fisher's exact test, testing only if K is larger than expected (single-tailed test)
+
+The interacting regions are searched by dividing the genome to 100 nt non-overlapping windows (set with --seglen) and testing if the number of interactions is larger than expected if there are at least 5 interactions between them (set with --min_int) and the odds ratio is larger than 2 (set with --min_odds_ratio). If the p-value is smaller than 0.05 (--max_pv) report this pair. To avoid re-reporting adjacent regions, the regions can be expanded up to 500 nts (--maxsegs) and the combination of regions with the lower p-value will be reported (after Bonferroni correction).
+
+After the regions were determined they are decorated with additional data like genes in the region, if this is a known target, the counts of single fragments in the two genes etc.
+
+Run this with:
+.. code-block:: console
+  $ pro_clash_significant_regions.py reads_in_list --ec_dir EcoCyc_dir --EC_chrlist "chr,COLI-K12" -t known_targets_file -c single_counts_file -r REP_elements_table
+
+There are more arguments, some mentioned above, other can be seen using -h. In order to get gene annotations you should get the EcoCyc flat files of your organism, they require registration, point the data directory with --ec_dir. The names of the chromosomes are probably different from the bam file (the genome.fa file you used for mapping) and the EcoCyc files. You can give the script a dictionary from the bam to EcoCyc using a comma separated list of names where the name in EcoCyc follows the name in the bam file.
+ 

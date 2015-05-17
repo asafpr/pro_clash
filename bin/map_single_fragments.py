@@ -12,6 +12,7 @@ import sys
 import argparse
 import pysam
 import csv
+import os
 
 import pro_clash
 
@@ -24,15 +25,31 @@ def process_command_line(argv):
         argv = sys.argv[1:]
 
     # initialize the parser object, replace the description
-    parser = argparse.ArgumentParser(description='Script description here.')
+    parser = argparse.ArgumentParser(
+        description='Map fastq files to the genome using bwa.',
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument(
         'genome_fasta',
         help='Name of genome fasta file. The file must be indexed using'
         'bwa index command prior to this run.')
     parser.add_argument(
+        '-1', '--fastq_1', action='append', nargs='+',
+        help='A list of the first read of the sequencing.')
+    parser.add_argument(
+        '-2', '--fastq_2', action='append', nargs='*',
+        help='A list of the second read of the sequencing.'
+        ' The order of these files should be as same as -1. Optional.')
+    parser.add_argument(
         '-g', '--genes_gff',
         help='Name of gff file to count the reads per gene. If not given '
-        ' skip this stage.')
+        ' or not readable, skip this stage.')
+    parser.add_argument(
+        '-r', '--reverse_complement', default=False,
+        action='store_true',
+        help='Treat the reads as reverse complement only when counting'
+        ' number of reads per gene and generating wig file. The resulting BAM'
+        ' files will be the original ones. Use this when treating libraries'
+        " built using Livny's protocol.")
     parser.add_argument(
         '-f', '--feature', default='exon',
         help='Name of features to count on the GTF file (column 2).')
@@ -40,22 +57,8 @@ def process_command_line(argv):
         '-i', '--identifier', default='gene_id',
         help='Name of identifier to print (in column 8 of the GTF file).')
     parser.add_argument(
-        '-v', '--overlap', type='int', default=5,
+        '-v', '--overlap', type=int, default=5,
         help='Minimal required overlap between the fragment and the feature.')
-    parser.add_argument(
-        '-r', '--reverse_complement', default=False,
-        action='store_true',
-        help='Treat the reads as reverse complement only when counting'
-        ' number of reads per gene and generating wig file. The resulting BAM'
-        ' files will be the original ones.')
-    parser.add_argument(
-        '-1', '--fastq_1', action='append', nargs='+',
-        help='A list of the first read of the sequencing. Use -1 prior to each'
-        ' file name')
-    parser.add_argument(
-        '-2', '--fastq_2', action='append', nargs='*',
-        help='A list of the second read of the sequencing.'
-        ' The order of these files should be as same as -1. Optional.')
     parser.add_argument(
         '-q', '--quality_cutoff', type=float, default=25,
         help='Used by cutadapt and BWA if no adapter is given to remove'
@@ -95,20 +98,24 @@ def process_command_line(argv):
 
 def main(argv=None):
     settings = process_command_line(argv)
-
+    if not os.path.exists(settings.dirout):
+        os.makedirs(settings.dirout)
     outwig = open("%s/%s_coverage.wig"%(settings.dirout, settings.outhead), 'w')
     if settings.genes_gff:
-        pos_feat_list, all_features = pro_clash.read_gtf(
-            settings.genes_gff, settings.feature, settings.identifier)
+        try:
+            pos_feat_list, all_features = pro_clash.read_gtf(
+                open(settings.genes_gff), settings.feature, settings.identifier)
+        except IOError:
+            settings.genes_gff = None
         gcounts = {}
         lib_order = []
-    for i, r1_name in enumerate(settings.fastq_1):
+    for i, r1_name in enumerate(settings.fastq_1[0]):
         try:
-            r2_name = settings.fastq_2[i]
+            r2_name = settings.fastq_2[0][i]
         except IndexError:
             r2_name = None
         outhead = r1_name.rsplit('.', 1)[0]
-        libname = outhead.rsplit('/',1)[1]
+        libname = outhead.rsplit('/',1)[-1]
         outhead = '%s_bwa'%libname
         bamname = pro_clash.run_bwa(
             settings.bwa_exec, r1_name, r2_name,

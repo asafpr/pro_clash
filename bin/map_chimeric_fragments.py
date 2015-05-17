@@ -29,7 +29,9 @@ def process_command_line(argv):
         argv = sys.argv[1:]
 
     # initialize the parser object, replace the description
-    parser = argparse.ArgumentParser(description='Script description here.')
+    parser = argparse.ArgumentParser(
+        description='Map unmapped reads as chimeric fragments',
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument(
         'genome_fasta',
         help='Name of genome fasta file. The file must be indexed using'
@@ -110,10 +112,10 @@ def main(argv=None):
     else:
         trans_dict = None
     # Get the ends of the reads from the bam files
-    for bf in settings.bamfiles:
+    for bf in settings.bamfiles[0]:
         bfin = pysam.Samfile(bf)
         outhead = bf.rsplit('.', 1)[0]
-        libname = outhead.rsplit('/',1)[1]
+        libname = outhead.rsplit('/',1)[-1]
         fsq1name = "%s/%s_ends_1.fastq"%(settings.dirout, libname)
         fsq1 = open(fsq1name, 'w')
         fsq2name = "%s/%s_ends_2.fastq"%(settings.dirout, libname)
@@ -124,9 +126,10 @@ def main(argv=None):
         # Map the fastq files to the genome
         reads_in = []
         for fqname in (fsq1name, fsq2name):
+            bamheadname = fqname.rsplit('.',1)[0].rsplit('/',1)[-1]
             bamname = pro_clash.run_bwa(
                 settings.bwa_exec, fqname, None,
-                settings.dirout, libname, settings.max_mismatches,
+                settings.dirout, bamheadname, settings.max_mismatches,
                 settings.genome_fasta, settings.params_aln,
                 settings.sampe_params, settings.samse_params,
                 settings.samtools_cmd)
@@ -135,7 +138,7 @@ def main(argv=None):
                     bamin, bamin.references, settings.allowed_mismatches))
         pro_clash.write_reads_table(
             sys.stdout, reads_in[0], reads_in[1], bfin.references,
-            bfin.references, settings.distance, not settings.keep_circular,
+            settings.distance, not settings.keep_circular,
             trans_dict)
                                     
         

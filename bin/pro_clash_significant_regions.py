@@ -25,7 +25,9 @@ def process_command_line(argv):
         argv = sys.argv[1:]
 
     # initialize the parser object, replace the description
-    parser = argparse.ArgumentParser(description='Script description here.')
+    parser = argparse.ArgumentParser(
+        description='Find over-represented regions of interactions.',
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
     parser.add_argument(
         'reads_in',
@@ -129,7 +131,7 @@ def main(argv=None):
             pro_clash.minpv_regions(
             reg1, reg2, region_interactions, region_ints_as1, region_ints_as2,
             total_interactions, found_in_interaction, settings.seglen,
-            settings.maxsegs, settings.maxdist, settings.min_odds)
+            settings.maxsegs, settings.maxdist, settings.min_odds_ratio)
         pv *= len(pairs_num)
         if pv <= settings.max_pv:
             # Mark as participating

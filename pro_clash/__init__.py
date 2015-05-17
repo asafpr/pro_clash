@@ -534,7 +534,7 @@ def read_bam_file(bamfile, chrnames_bam, max_NM=0):
 
 
 def write_reads_table(
-    outfile, read1_reads, read2_reads, chrnames_EC, chrnames_bam, maxdist,
+    outfile, read1_reads, read2_reads, chrnames_bam, maxdist,
     remove_self, trans_gff=None):
     """
     Read the lists of reads and print a list of chimeric fragments after
@@ -544,8 +544,6 @@ def write_reads_table(
     - `read1_reads`: A dictionary of reads from side 1
     - `read2_reads`: A dictionary of reads from side 2, keys of 1 and 2 should
                      match
-    - `chrnames_EC`: A list of chromosome names for output, should be EcoCyc
-                     names for downstream analysis
     - `chrnames_bam`: A list of chromosome names in the bam file
     - `maxdist`: Maximal distance between concordant reads
     - `remove_self`: Remove circular RNAs
@@ -558,11 +556,11 @@ def write_reads_table(
             continue
         # If the two reads share at least one gene they are excluded
         if test_concordance(
-            read1_reads[rname], read2_reads[rname], trans_gff, maxdist,
-            chrnames_bam, remove_self):
+            read1_reads[rname], read2_reads[rname], maxdist,
+            chrnames_bam, trans_gff=trans_gff, remove_self=remove_self):
             continue
-        read1_chrn = chrnames_EC[read1_reads[rname].tid]
-        read2_chrn = chrnames_EC[read2_reads[rname].tid]
+        read1_chrn = chrnames_bam[read1_reads[rname].tid]
+        read2_chrn = chrnames_bam[read2_reads[rname].tid]
         if not read2_reads[rname].is_reverse:
             end2_pos = read2_reads[rname].pos+read2_reads[rname].qlen-1
             end2_str = '+'
@@ -728,11 +726,16 @@ def read_singles(singles_file):
     """
     Read the table of reads per gene and return a dictionary
     """
+    if not singles_file:
+        return None
     counts = {}
     try:
         for line in open(singles_file):
             spl = line.strip().split()
-            counts[spl[0]] = sum([int(k) for k in spl[1:]])
+            try:
+                counts[spl[0]] = sum([int(k) for k in spl[1:]])
+            except ValueError:
+                pass
     except IOError:
         return None
     return counts
@@ -793,8 +796,9 @@ def get_genes_dict(ec_dir, pad=100):
 
 
 def list_of_genes(
-    r1_region_from, r1_region_to, r1_str, r1_chrn, r2_region_from, r2_region_to,
-    r2_str, r2_chrn, region_interactions, genes_dict, seglen, rlen):
+    r1_region_from, r1_region_to, r1_str, r1_chrn, r1_chrnEC, r2_region_from,
+    r2_region_to, r2_str, r2_chrn, r2_chrnEC, region_interactions, genes_dict,
+    seglen, rlen):
     """
     Return a list of genes that intersect with the given regions.
     Return the minimal and maximal positions of reads in the regions as well.
@@ -805,10 +809,12 @@ def list_of_genes(
     - `r1_region_to`: The end of r1
     - `r1_str`: r1 strand
     - `r1_chrn`: r1 chromosome
+    - `r1_chrnEC`: r1 chromosome in EcoCyc mapping
     - `r2_region_from`: region 2 from
     - `r2_region_to`: region 2 to
     - `r2_str`: r2 strand
     - `r2_chrn`: r2 chromosome
+    - `r2_chrnEC`: r2 chromosome in EcoCyc
     - `region_interactions`: A double dictionary region1->region2->[(p1, p2)]
     - `genes_dict`: dictionary of genes
     - `seglen`: length of segments
@@ -828,18 +834,19 @@ def list_of_genes(
                 max1_pos = max(max1_pos, r1p)
                 min2_pos = min(min2_pos, r2p)
                 max2_pos = max(max2_pos, r2p)
-                if r1_str == '+':
-                    drange = range(max(r1p-rlen,0), r1p)
-                else:
-                    drange = range(r1p, r1p+rlen)
-                for i in drange:
-                    cdict_r1[genes_dict[r1_chrn][(i, r1_str)]] += 1
-                if r2_str == '+':
-                    drange = range(r2p, r2p+rlen)
-                else:
-                    drange = range(max(r2p-rlen,0), r2p)
-                for i in drange:
-                    cdict_r2[genes_dict[r2_chrn][(i, r2_str)]] += 1
+                if genes_dict:
+                    if r1_str == '+':
+                        drange = range(max(r1p-rlen,0), r1p)
+                    else:
+                        drange = range(r1p, r1p+rlen)
+                    for i in drange:
+                        cdict_r1[genes_dict[r1_chrnEC][(i, r1_str)]] += 1
+                    if r2_str == '+':
+                        drange = range(r2p, r2p+rlen)
+                    else:
+                        drange = range(max(r2p-rlen,0), r2p)
+                    for i in drange:
+                        cdict_r2[genes_dict[r2_chrnEC][(i, r2_str)]] += 1
     genes1_list = sorted(cdict_r1, key=cdict_r1.get, reverse=True)
     genes2_list = sorted(cdict_r2, key=cdict_r2.get, reverse=True)
     return genes1_list, genes2_list, min1_pos, min2_pos, max1_pos, max2_pos
@@ -938,45 +945,138 @@ def report_interactions(
     - `rlen`: Length of reads
     - `est_utr_lens`: Estimated lengths of UTRs when data is not available in
                       EcoCyc
-    - `pad_Seqs`: Pad the interacting regions when extracting sequences.
+    - `pad_seqs`: Pad the interacting regions when extracting sequences.
     """
     targets = read_targets(targets_file)
     singles = read_singles(single_counts)
     desc = read_annotations(refseq_dir)
 #    genes_dict = get_genes_dict(ec_dir, est_utr_lens)
-    pos_maps, uid_gene = ecocyc_parser.get_mapping(ec_dir, est_utr_lens)
+    try:
+        pos_maps, _ = ecocyc_parser.get_mapping(ec_dir, est_utr_lens)
+    except IOError:
+        pos_maps = None
     try:
         rep_pos = ecocyc_parser.read_REP_table(rep_file)
     except IOError:
         rep_pos = None
-    fsa_files = ecocyc_parser.read_fsas(ec_dir)
-    rnup = RNAup_tar_pred.RNAupTarPred(cmd=RNAup_cmd, servers=servers)
-    _, uid_names, _, sRNAs, _  = ecocyc_parser.read_genes_data(ec_dir)
-    chr_dict = dict(zip(ec_chrs.split(',')[0::2], ec_chrs.split(',')[1::2]))
+    try:
+        fsa_seqs = ecocyc_parser.read_fsas(ec_dir)
+    except IOError:
+        fsa_seqs = None
+    if shuffles > 0:
+        rnup = RNAup_tar_pred.RNAupTarPred(cmd=RNAup_cmd, servers=servers)
+    try:
+        _, uid_names, _, sRNAs, _  = ecocyc_parser.read_genes_data(ec_dir)
+    except IOError:
+        uid_names, sRNAs = None, None
+    if len(ec_chrs) >= 2:
+        chr_dict = dict(zip(ec_chrs.split(',')[0::2], ec_chrs.split(',')[1::2]))
+    else:
+        chr_dict = {}
     # All the output will be stored here and then sorted according to the name
     out_data = {}
+    header_vec = [
+        'RNA1 chromosome', 'RNA1 from', 'RNA1 to', 'RNA1 strand',
+        'RNA2 chromosome', 'RNA2 from', 'RNA2 to', 'RNA2 strand',
+        'interactions', 'other interactions of RNA1',
+        'other interactinos of RNA2', 'total other interactions', 'odds ratio',
+        "Fisher's exact test p-value" ]
+    if shuffles > 0 and fsa_seqs:
+        header_vec.extend([
+                'Free energy of hybridization',
+                'empirical p-value of free energy'])
+    if rep_pos:
+        header_vec.extend(['RNA1 REP elements', 'RNA2 REP elements'])
+    if targets and pos_maps:
+        header_vec.append('Is known target')
+    if singles and pos_maps:
+        header_vec.extend([
+                'RNA1 single fragments counts', 'RNA2 single fragments counts'])
+    if pos_maps:
+        header_vec = [
+            'RNA1 EcoCyc ID', 'RNA2 EcoCyc ID', 'RNA1 name', 'RNA2 name',
+            'RNA1 description', 'RNA2 description'] + header_vec
     # Used to sort the lines
+    sorted_order = []
     sort_both_sRNAs = {}
     sort_one_sRNA = {}
     sort_3UTRs = {}
     sort_rest = {}
+
     for ittr in interacting_regions:
         (pv, ints, odds, r1_from, r1_to, r1_str, r1_chrnbam, r2_from, r2_to,
          r2_str, r2_chrnbam, mat_b, mat_c, mat_d) =\
             ittr
+        rkey=(
+            r1_from, r1_to, r1_str, r1_chrnbam, r2_from, r2_to, r2_str,
+            r2_chrnbam)
+
         # get the genes in the region
-        r1_chrn = chr_dict[r1_chrnbam]
-        r2_chrn = chr_dict[r2_chrnbam]
+        try:
+            r1_chrn = chr_dict[r1_chrnbam]
+        except KeyError:
+            r1_chrn = r1_chrnbam
+        try:
+            r2_chrn = chr_dict[r2_chrnbam]
+        except KeyError:
+            r2_chrn = r2_chrnbam
+        # Read genes and coordinates data
         genes1_list, genes2_list, min1_pos, min2_pos, max1_pos, max2_pos =\
             list_of_genes(
-            r1_from, r1_to, r1_str, r1_chrn, r2_from, r2_to, r2_str, r2_chrn,
-            region_interactions, pos_maps, seglen, rlen)
+            r1_from, r1_to, r1_str, r1_chrnbam, r1_chrn, r2_from, r2_to, r2_str,
+            r2_chrnbam, r2_chrn, region_interactions, pos_maps, seglen, rlen)
+
+        out_data[rkey] = [
+            r1_chrn, min1_pos, max1_pos, r1_str, r2_chrn, min2_pos, max2_pos,
+            r2_str, ints, mat_b, mat_c, mat_d, odds, pv]
+        if shuffles > 0 and fsa_seqs:
+            p5_seqs =  get_seqs(
+                r1_chrn, min1_pos-pad_seqs, max1_pos+pad_seqs, r1_str, fsa_seqs,
+                shuffles=shuffles)
+            if r2_str == '+':
+                p3_seq = get_seqs(
+                    r2_chrn, min2_pos-pad_seqs, max2_pos, r2_str, fsa_seqs)
+            else:
+                p3_seq = get_seqs(
+                    r2_chrn, min2_pos, max2_pos+pad_seqs, r2_str, fsa_seqs)
+            rnrgs = rnup.scoreall(p3_seq, p5_seqs)
+            pv = len([r for r in rnrgs.values() if r>=rnrgs['real']])/float(
+                len(rnrgs))
+            out_data[rkey].extend([-rnrgs['real'], pv])
+        if rep_pos:
+            out_data[rkey].append(','.join(has_rep(
+                        r1_chrn, min1_pos, max1_pos, r1_str, rep_pos)))
+            out_data[rkey].append(','.join(has_rep(
+                        r2_chrn, min2_pos, max2_pos, r2_str, rep_pos)))
+            
+        if not pos_maps:
+            sorted_order.append(rkey)
+            continue
+                
         gname1 = genes1_list[0]
         gname2 = genes2_list[0]
         g1common, g1desc = get_names(gname1, uid_names, desc)
         g2common, g2desc = get_names(gname2, uid_names, desc)
-        rkey=(r1_from, r1_to, r1_str, r1_chrnbam, r2_from, r2_to,
-         r2_str, r2_chrnbam)
+        out_data[rkey] = [
+            '.'.join([str(j) for j in gname1]),
+            '.'.join([str(j) for j in gname2]), g1common,
+            g2common, g1desc, g2desc] + out_data[rkey]
+        if targets:
+            is_target = False
+            for g1 in gname1:
+                for g2 in gname2:
+                    is_target |= (g1, g2) in targets or (g2, g1) in targets
+            out_data[rkey].append(is_target)
+        if singles:
+            for gg in (gname1, gname2):
+                gnums = []
+                for g1 in gg:
+                    try:
+                        gnums.append(str(singles[g1]))
+                    except KeyError:
+                        pass
+                out_data[rkey].append(':'.join(gnums))
+            
         if gname1[0] in sRNAs and gname2[0] in sRNAs:
             sort_both_sRNAs[rkey] = ''.join(sorted([g1common, g2common]))
         elif gname1[0] in sRNAs:
@@ -989,3 +1089,14 @@ def report_interactions(
             sort_3UTRs[rkey] = g2common+g1common
         else:
             sort_rest[rkey] = ''.join(sorted([g1common, g2common]))
+
+    # Sort the list of interactions (if pos_maps is set)
+    sorted_order.extend(sorted(sort_both_sRNAs, key=sort_both_sRNAs.get))
+    sorted_order.extend(sorted(sort_one_sRNA, key=sort_one_sRNA.get))
+    sorted_order.extend(sorted(sort_3UTRs, key=sort_3UTRs.get))
+    sorted_order.extend(sorted(sort_rest, key=sort_rest.get))
+    # Print all the interactions
+    outer=csv.writer(outfile, delimiter='\t')
+    outer.writerow(header_vec)
+    for k in sorted_order:
+        outer.writerow(out_data[k])

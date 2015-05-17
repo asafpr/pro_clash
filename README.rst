@@ -60,4 +60,19 @@ Run this with::
      $ pro_clash_significant_regions.py reads_in_list --ec_dir EcoCyc_dir --EC_chrlist "chr,COLI-K12" -t known_targets_file -c single_counts_file -r REP_elements_table
 
 There are more arguments, some mentioned above, other can be seen using -h. In order to get gene annotations you should get the EcoCyc flat files of your organism, they require registration, point the data directory with --ec_dir. The names of the chromosomes are probably different from the bam file (the genome.fa file you used for mapping) and the EcoCyc files. You can give the script a dictionary from the bam to EcoCyc using a comma separated list of names where the name in EcoCyc follows the name in the bam file.
- 
+
+In addition to printing the interactions, this script can compute the interaction free-energy using RNAup if --shuffles is > 0, it uses shuffled sequences to compute a p-value on this energy. 
+
+Data Files
+----------
+This package works well for E. coli K12 (RefSeq NC_000913.2 genome). The data
+directory contains the genome (E_coli_K12/genome.fa), the EcoCyc genes gff file and the
+EcoCyc transcripts gff file. The genome should be indexed using bwa index genome.fa before using it. The two gff files can be generated using the scripts::
+
+    generate_transcripts_gff.py EcoCyc_data_dir
+and::
+
+    generate_genes_gff.py EcoCyc_data_dir
+
+There are two additional files in the data directory: a curated list of targets
+taken from EcoCyc with slight changes and a table of REP elements (used for annotation of results), this table was downloaded from:  http://ecocyc.org/group?id=biocyc14-8223-3640227683 

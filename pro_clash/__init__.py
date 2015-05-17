@@ -1027,8 +1027,8 @@ def report_interactions(
             r2_chrnbam, r2_chrn, region_interactions, pos_maps, seglen, rlen)
 
         out_data[rkey] = [
-            r1_chrn, min1_pos, max1_pos, r1_str, r2_chrn, min2_pos, max2_pos,
-            r2_str, ints, mat_b, mat_c, mat_d, odds, pv]
+            r1_chrn, min1_pos+1, max1_pos+1, r1_str, r2_chrn, min2_pos+1,
+            max2_pos+1, r2_str, ints, mat_b, mat_c, mat_d, odds, pv]
         if shuffles > 0 and fsa_seqs:
             p5_seqs =  get_seqs(
                 r1_chrn, min1_pos-pad_seqs, max1_pos+pad_seqs, r1_str, fsa_seqs,
@@ -1081,7 +1081,7 @@ def report_interactions(
             sort_both_sRNAs[rkey] = ''.join(sorted([g1common, g2common]))
         elif gname1[0] in sRNAs:
             sort_one_sRNA[rkey] = g1common+g2common
-        elif gname2 in sRNAs:
+        elif gname2[0] in sRNAs:
             sort_one_sRNA[rkey] = g2common+g1common
         elif '3UTR' in gname1 or 'EST3UTR' in gname1:
             sort_3UTRs[rkey] = g1common+g2common

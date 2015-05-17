@@ -11,6 +11,7 @@ Simple mapping
 --------------
 The first stage is to map the reads to the genome. In this readme file it's assumed that the reads are paired-end but all the commands will work for single-end mapping.
 
+Run with::
 
     $ map_single_fragments.py  genome.fa -g annotations.gff -1 lib1_1.fastq[.gz] lib2_1.fastq[.gz] lib3_1.fastq[.gz] -2 lib1_2.fastq[.gz] lib2_2.fastq[.gz] -d output_dir -o output_head [-r] -m max_mismatches
 
@@ -29,8 +30,7 @@ After reads that might be concordant are removed, the lowest position on the chr
 
 For each pair of reads the output file will contain a line with the coordinates of the first read, the second read and the read name. All the bam files that were given as input will be joined to the same output file, they can be further separated using the read names. Alternatively, you can run each bam file separately and cat all the reads files.
 
-
-
+Run with::
     $ map_chimeric_fragments.py genome.fa lib1_bwa.bam lib2_bwa.bam ...
 
 Here as above, paired-end and single-end sequencing results can be used.
@@ -54,7 +54,7 @@ The interacting regions are searched by dividing the genome to 100 nt non-overla
 
 After the regions were determined they are decorated with additional data like genes in the region, if this is a known target, the counts of single fragments in the two genes etc.
 
-Run this with:
+Run this with::
 
      $ pro_clash_significant_regions.py reads_in_list --ec_dir EcoCyc_dir --EC_chrlist "chr,COLI-K12" -t known_targets_file -c single_counts_file -r REP_elements_table
 

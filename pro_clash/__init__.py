@@ -898,7 +898,7 @@ def get_names(gname, uid_names, annotations):
             p1_desc = '-'
         p0_desc += ' : %s'%p1_desc
         
-    elif len(gname)>2:
+    elif len(gname)>=2:
         p0_name += '_%s'%gname[1]
         
     return p0_name, p0_desc

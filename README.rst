@@ -63,6 +63,26 @@ There are more arguments, some mentioned above, other can be seen using -h. In o
 
 In addition to printing the interactions, this script can compute the interaction free-energy using RNAup if --shuffles is > 0, it uses shuffled sequences to compute a p-value on this energy. 
 
+
+Generating Plots and Tracks
+---------------------------
+The script plot_circos_plot read the output of map_chimeric_fragments.py to 
+generate a list of interactions between regions in the chromosome. It can't 
+show interactions between two chromosomes.
+
+Together with the conf files in the data/E_coli_K12 dir and the short script
+plot_interactions.sh found in this directory you can plot the interactions
+with the sRNAs, rRNAs and tRNAs on the genome.
+
+You should execute plot_interactions.sh from the directory it resides in or
+give the path to the conf files. run::
+
+    plot_interactions.sh interactions.txt interactions_plot.png
+
+(other formats are also available like svg)
+
+
+
 Data Files
 ----------
 This package works well for E. coli K12 (RefSeq NC_000913.2 genome). The data

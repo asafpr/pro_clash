@@ -14,6 +14,21 @@ import gzip
 from . import ecocyc_parser
 from . import RNAup_tar_pred
 from . import dinuc_shuffle
+
+# A small helper function to handle argmunets parsing
+def flat_list(list_to_flat):
+    """
+    Flattent he list of arguments to one list
+    Arguments:
+    - `list_to_flat`: A nested list
+    """
+    if not isinstance(list_to_flat, list):
+        yield list_to_flat
+    else:
+        for item in list_to_flat:
+            for it2 in flat_list(item):
+                yield(it2)
+
 # Functions for simple mapping (single fragment)
 def run_bwa(bwa_cmd, fname1, fname2, output_dir, output_prefix, mismatches,
             fasta_genome, params_aln, params_sampe, params_samse, samtools_cmd):
@@ -714,6 +729,8 @@ def read_targets(tarfile):
     Arguments:
     - `tarfile`: A tab-del file with EcoCyc names of sRNA and target
     """
+    if not tarfile:
+        return None
     tars = []
     try:
         for line in open(tarfile):

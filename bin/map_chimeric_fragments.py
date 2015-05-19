@@ -112,7 +112,8 @@ def main(argv=None):
     else:
         trans_dict = None
     # Get the ends of the reads from the bam files
-    for bf in settings.bamfiles[0]:
+    sys.stderr.write('%s\n'%str(settings.bamfiles))
+    for bf in pro_clash.flat_list(settings.bamfiles):
         bfin = pysam.Samfile(bf)
         outhead = bf.rsplit('.', 1)[0]
         libname = outhead.rsplit('/',1)[-1]

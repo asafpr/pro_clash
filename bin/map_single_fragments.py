@@ -109,9 +109,10 @@ def main(argv=None):
             settings.genes_gff = None
         gcounts = {}
         lib_order = []
-    for i, r1_name in enumerate(settings.fastq_1[0]):
+    fastq_2_list = list(pro_clash.flat_list(settings.fastq_2))
+    for i, r1_name in enumerate(pro_clash.flat_list(settings.fastq_1)):
         try:
-            r2_name = settings.fastq_2[0][i]
+            r2_name = fastq_2_list[i]
         except IndexError:
             r2_name = None
         outhead = r1_name.rsplit('.', 1)[0]

@@ -22,7 +22,7 @@ def get_mapping(ec_dir='/home/users/assafp/Database/EcoCyc/current/data',
         rep_pos = read_REP_table(ec_dir)
     else:
         rep_pos = None
-    uid_pos, uid_names, uid_tudata, sRNAs_list, other_RNAs_list =\
+    uid_pos, uid_names, uid_tudata, sRNAs_list, other_RNAs_list, rRNAs =\
         read_genes_data(ec_dir)
     tu_genes = defaultdict(list)
     for gene, tus in uid_tudata.items():
@@ -54,6 +54,7 @@ def read_REP_table(rep_file):
             pass
     return rep_pos
     
+    
 
 
 def read_fsas(ec_dir='/home/users/assafp/Database/EcoCyc/current/data'):
@@ -83,7 +84,7 @@ def generate_transcripts_file(
     """
     tu_promoters = read_promoters_data(ec_dir)
     tu_terminators = read_terminators_data(ec_dir)
-    uid_pos, uid_names, uid_tudata, sRNAs_list, other_RNAs_list =\
+    uid_pos, uid_names, uid_tudata, sRNAs_list, other_RNAs_list, rRNAs =\
         read_genes_data(ec_dir)
     tu_genes = defaultdict(list)
     for gene, tus in uid_tudata.items():
@@ -134,7 +135,7 @@ def generate_gff_file(
     - `outfile`: An open file
     - `ec_dir`: EcoCyc data dir
     """
-    uid_pos, uid_names, uid_tudata, sRNAs_list, other_RNAs_list =\
+    uid_pos, uid_names, uid_tudata, sRNAs_list, other_RNAs_list, rRNAs =\
         read_genes_data(ec_dir)
     sort_dict = {}
     for gi, gpos in uid_pos.items():
@@ -216,7 +217,8 @@ def read_terminators_data(
 def read_genes_data(
     ec_dir='/home/users/assafp/Database/EcoCyc/current/data',
     gfile = 'genes.dat', sRNAs_types=('BC-2.2','BC-2.2.7'),
-    other_RNAs_types=('BC-2.2.5', 'BC-2.2.6'), exclude_set=('EG10438',)):
+    other_RNAs_types=('BC-2.2.5', 'BC-2.2.6'), exclude_set=('EG10438',),
+    rRNA_prod='RRNA'):
     """
     Read the genes.dat from the ec directory 
     Arguments:
@@ -232,11 +234,13 @@ def read_genes_data(
     - `uid_tudata`: A dict UID->[TUs]
     - `sRNAs list`: A list of sRNAs,
     - `other_RNAs_list`: a list of tRNAs, rRNAs etc
+    - `rRNA_prod`: Name of rRNA product to return a list of rRNAs
     """
     uid_pos = {}
     uid_names = {}
     sRNAs_list = []
     other_RNAs_list = []
+    rRNAs = []
     uid_tudata = {}
     with open("%s/%s"%(ec_dir, gfile)) as ecin:
         ingene = None
@@ -269,6 +273,9 @@ def read_genes_data(
                     tu_data.append(tuname)
                 else:
                     chrom_name = tuname.rsplit('-',1)[0]
+            if line.startswith('PRODUCT'):
+                if line.strip().split()[-1].split('-')[-1]==rRNA_prod:
+                    rRNAs.append(ingene)
             if line.startswith('//'):
                 if coords[2] != '' and coords[1]>coords[0]:
                     uid_pos[ingene] = [chrom_name] + coords
@@ -286,7 +293,7 @@ def read_genes_data(
                 tu_data = []
                 chrom_name = None
                 
-    return  uid_pos, uid_names, uid_tudata, sRNAs_list, other_RNAs_list
+    return  uid_pos, uid_names, uid_tudata, sRNAs_list, other_RNAs_list, rRNAs
 
 def anti_strand(strand):
     """

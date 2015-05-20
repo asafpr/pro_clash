@@ -51,9 +51,6 @@ def process_command_line(argv):
         ' reside from the same transcript. Very useful for screening ribosomal'
         ' RNAs. Otherwise use only the size limit.')
     parser.add_argument(
-        '--ribozero', default=False, action='store_true',
-        help='Remove rRNA from the list of chimeric reads.')
-    parser.add_argument(
         '-s', '--distance', type=int, default=1000,
         help='Maximal distance between concordant reads. If they are generated'
         ' from the same strand but larger than this distance they will be'

@@ -594,13 +594,15 @@ def write_reads_table(
                 end2_str, rname))
 
 
-def read_reads_table(reads_in, seglen):
+def read_reads_table(reads_in, seglen, rRNAs=None):
     """
     Read a reads table and count the number of times each pair of segments
     appears in a chimeric fragment.
     Arguments:
     - `reads_in`: The table (tab delimited) of reads
     - `seglen`: The length of the segment
+    - `rRNAs`: Remove chimeras that map to rRNA gene. This parameter holds the
+               list of rRNA genes positions (chr, from, to ,strand)
     """
     region_interactions = defaultdict(lambda:defaultdict(list))
     region_ints_as1 = defaultdict(int)
@@ -611,6 +613,19 @@ def read_reads_table(reads_in, seglen):
             line.strip().split()
         end1_pos = int(end1_pos1)-1
         end2_pos = int(end2_pos1)-1
+        if rRNAs:
+            has_rRNA = False
+            for rrgene in rRNAs:
+                if end1_chrn == rrgene[0] and end1_str == rrgene[3] and\
+                        rrgene[1] <= end1_pos < rrgene[2]:
+                    has_rRNA = True
+                    break
+                if end2_chrn == rrgene[0] and end2_str == rrgene[3] and\
+                        rrgene[1] <= end2_pos < rrgene[2]:
+                    has_rRNA = True
+                    break
+            if has_rRNA:
+                continue
         end1_seg = (end1_pos/seglen)*seglen
         end2_seg = (end2_pos/seglen)*seglen
         total_interactions += 1
@@ -983,7 +998,7 @@ def report_interactions(
     if shuffles > 0:
         rnup = RNAup_tar_pred.RNAupTarPred(cmd=RNAup_cmd, servers=servers)
     try:
-        _, uid_names, _, sRNAs, _  = ecocyc_parser.read_genes_data(ec_dir)
+        _, uid_names, _, sRNAs, _, _  = ecocyc_parser.read_genes_data(ec_dir)
     except IOError:
         uid_names, sRNAs = None, None
     if len(ec_chrs) >= 2:

@@ -38,6 +38,9 @@ def process_command_line(argv):
         help='EcoCyc data dir, used to map the regions to genes. If not'
         ' given only the regions will be reported')
     parser.add_argument(
+        '--ribozero', default=False, action='store_true',
+        help='Remove rRNA from the list of chimeric reads.')
+    parser.add_argument(
         '--est_utr_lens', type=int, default=100,
         help='Estimated UTRs lengths when there is not data.')
     parser.add_argument(
@@ -109,9 +112,21 @@ def process_command_line(argv):
 
 def main(argv=None):
     settings = process_command_line(argv)
+    if settings.ribozero:
+        uid_pos,_,_,_,_,rRNAs = pro_clash.ecocyc_parser.read_genes_data(
+            settings.ec_dir)
+        rr_pos = []
+        chr_dict = dict(zip(
+                settings.EC_chrlist.split(',')[1::2],
+                settings.EC_chrlist.split(',')[0::2]))
+        for rrgene in rRNAs:
+            rr_pos.append([chr_dict[uid_pos[rrgene][0]]]+uid_pos[rrgene][1:])
+    else:
+        rr_pos = None
     region_interactions, region_ints_as1, region_ints_as2, total_interactions=\
-        pro_clash.read_reads_table(open(settings.reads_in), settings.seglen)
-
+        pro_clash.read_reads_table(
+        open(settings.reads_in), settings.seglen, rr_pos)
+    sys.stderr.write("Total interactions: %d\n"%total_interactions)
 
     # Now run the test for each pair of interacting regions
     found_in_interaction = defaultdict(bool)

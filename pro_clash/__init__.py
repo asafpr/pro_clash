@@ -867,13 +867,13 @@ def list_of_genes(
                 min2_pos = min(min2_pos, r2p)
                 max2_pos = max(max2_pos, r2p)
                 if genes_dict:
-                    if r1_str == '+':
+                    if r1_str == '-':
                         drange = range(max(r1p-rlen,0), r1p)
                     else:
                         drange = range(r1p, r1p+rlen)
                     for i in drange:
                         cdict_r1[genes_dict[r1_chrnEC][(i, r1_str)]] += 1
-                    if r2_str == '+':
+                    if r2_str == '-':
                         drange = range(r2p, r2p+rlen)
                     else:
                         drange = range(max(r2p-rlen,0), r2p)

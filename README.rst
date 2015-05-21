@@ -90,9 +90,11 @@ directory contains the genome (E_coli_K12/genome.fa), the EcoCyc genes gff file 
 EcoCyc transcripts gff file. The genome should be indexed using bwa index genome.fa before using it. The two gff files can be generated using the scripts::
 
     generate_transcripts_gff.py EcoCyc_data_dir
+
 and::
 
     generate_genes_gff.py EcoCyc_data_dir
 
 There are two additional files in the data directory: a curated list of targets
 taken from EcoCyc with slight changes and a table of REP elements (used for annotation of results), this table was downloaded from:  http://ecocyc.org/group?id=biocyc14-8223-3640227683 
+

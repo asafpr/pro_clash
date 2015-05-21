@@ -115,8 +115,12 @@ class RNAupTarPred():
             self.runners  = [Runner(self.tasks,self.results,
                                'ssh '+server+' nice +10 '+self.cmd)
                         for server in self.servers]
-        elif isinstance(self.servers,int) or self.servers is None:
-            nthreads = self.servers
+        else:
+            try:
+#                if isinstance(self.servers,int) or self.servers is None:
+                nthreads = int(self.servers)
+            except TypeError:
+                nthreads = None
             if nthreads is None : nthreads=1
             self.runners = [Runner(self.tasks,self.results,self.cmd) for _ in xrange(nthreads)]
         for w in self.runners:

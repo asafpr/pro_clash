@@ -100,7 +100,7 @@ def process_command_line(argv):
         '--sampe_params', default='-a 1500 -P',
         help='Additional parameters for sampe function of bwa.')
     parser.add_argument(
-        '--samse_params', default=' ',
+        '--samse_params', default='-n 100',
         help='Additional parameters for samse function of bwa.')
     settings = parser.parse_args(argv)
 
@@ -114,7 +114,7 @@ def main(argv=None):
     else:
         trans_dict = None
     # Get the ends of the reads from the bam files
-    sys.stderr.write('%s\n'%str(settings.bamfiles))
+#    sys.stderr.write('%s\n'%str(settings.bamfiles))
     for bf in pro_clash.flat_list(settings.bamfiles):
         bfin = pysam.Samfile(bf)
         outhead = bf.rsplit('.', 1)[0]

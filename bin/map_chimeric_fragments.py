@@ -97,7 +97,7 @@ def process_command_line(argv):
         '--params_aln', default='-t 8 -k 1 -R 200 -l 20',
         help='Additional parameters for aln function of bwa.')
     parser.add_argument(
-        '--sampe_params', default='-a 1500 -P',
+        '--sampe_params', default='-a 1500 -P -n 100',
         help='Additional parameters for sampe function of bwa.')
     parser.add_argument(
         '--samse_params', default='-n 100',

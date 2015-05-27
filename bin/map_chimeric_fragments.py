@@ -51,9 +51,6 @@ def process_command_line(argv):
         ' reside from the same transcript. Very useful for screening ribosomal'
         ' RNAs. Otherwise use only the size limit.')
     parser.add_argument(
-        '--ribozero', default=False, action='store_true',
-        help='Remove rRNA from the list of chimeric reads.')
-    parser.add_argument(
         '-s', '--distance', type=int, default=1000,
         help='Maximal distance between concordant reads. If they are generated'
         ' from the same strand but larger than this distance they will be'
@@ -94,7 +91,7 @@ def process_command_line(argv):
         '-S', '--samtools_cmd', default='samtools',
         help='Samtools executable.')
     parser.add_argument(
-        '--params_aln', default='-t 8 -k 1 -R 200 -l 20',
+        '--params_aln', default='-t 8 -k 1 -R 200 -l 11',
         help='Additional parameters for aln function of bwa.')
     parser.add_argument(
         '--sampe_params', default='-a 1500 -P -n 100',

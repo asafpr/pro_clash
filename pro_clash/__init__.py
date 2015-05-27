@@ -524,6 +524,9 @@ def read_bam_file(bamfile, chrnames_bam, max_NM=0):
             min_is_rev = read.is_reverse
             for al in alt_list:
                 apos = int(al[1][1:])
+                # test this alternative only if its NM is as the original one
+                if int(apos[3])>nm_num:
+                    continue
                 if apos < min_pos:
                     min_pos = apos
                     min_is_rev = al[1][0]=='-'

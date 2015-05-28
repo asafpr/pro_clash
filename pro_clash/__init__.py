@@ -839,6 +839,8 @@ def list_of_genes(
     Return the minimal and maximal positions of reads in the regions as well.
     The genes are sorted according to the number of reads starting in each
     position
+    Changed on Version 0.18:
+    If a region overlaps antisense and another gene always prefer the other gene
     Arguments:
     - `r1_region_from`: the first position of r1 
     - `r1_region_to`: The end of r1
@@ -882,6 +884,14 @@ def list_of_genes(
                         drange = range(max(r2p-rlen,0), r2p)
                     for i in drange:
                         cdict_r2[genes_dict[r2_chrnEC][(i, r2_str)]] += 1
+    # reduce the AS counts to 1
+    for k in cdict_r1:
+        if k[-1] == 'AS':
+            cdict_r1[k] = 1
+    for k in cdict_r2:
+        if k[-1] == 'AS':
+            cdict_r2[k] = 1
+    
     genes1_list = sorted(cdict_r1, key=cdict_r1.get, reverse=True)
     genes2_list = sorted(cdict_r2, key=cdict_r2.get, reverse=True)
     return genes1_list, genes2_list, min1_pos, min2_pos, max1_pos, max2_pos

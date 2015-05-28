@@ -454,9 +454,9 @@ def position_to_gene(
                     if (i, gpos[3]) not in pos_map[gpos[0]]:
                         pos_map[gpos[0]][(i, gpos[3])] =\
                             (gname, 'EST5UTR', gpos[1]-i)
-                    if (i, anti_strand(gpos[3])) not in pos_map[gpos[0]]:
-                        pos_map[gpos[0]][(i, anti_strand(gpos[3]))] = (
-                            gname, 'EST5UTR_AS', gpos[1]-i)
+#                    if (i, anti_strand(gpos[3])) not in pos_map[gpos[0]]:
+#                        pos_map[gpos[0]][(i, anti_strand(gpos[3]))] = (
+#                            gname, 'EST5UTR_AS', gpos[1]-i)
                     # if it is, test if it's estimated and the length
                     # of this UTR is smaller than the other, already written
                     # UTR, if it's indeed shorter, replace it
@@ -465,8 +465,8 @@ def position_to_gene(
                             pos_map[gpos[0]][(i, gpos[3])][2] > gpos[1]-i:
                         pos_map[gpos[0]][(i, gpos[3])] =\
                             (gname, 'EST5UTR', gpos[1]-i)
-                        pos_map[gpos[0]][(i, anti_strand(gpos[3]))] = (
-                            gname, 'EST5UTR_AS', gpos[1]-i)
+#                        pos_map[gpos[0]][(i, anti_strand(gpos[3]))] = (
+#                            gname, 'EST5UTR_AS', gpos[1]-i)
                     elif pos_map[gpos[0]][(i, gpos[3])][-1] == 'AS':
                         pos_map[gpos[0]][(i, gpos[3])] =\
                             (gname, 'EST5UTR', gpos[1]-i)
@@ -475,16 +475,16 @@ def position_to_gene(
                     if (i, gpos[3]) not in pos_map[gpos[0]]:
                         pos_map[gpos[0]][(i, gpos[3])] =\
                             (gname, 'EST5UTR', i-gpos[2])
-                    if (i, anti_strand(gpos[3])) not in pos_map[gpos[0]]:
-                        pos_map[gpos[0]][(i, anti_strand(gpos[3]))] = (
-                            gname, 'EST5UTR_AS', i-gpos[2])
+#                    if (i, anti_strand(gpos[3])) not in pos_map[gpos[0]]:
+#                        pos_map[gpos[0]][(i, anti_strand(gpos[3]))] = (
+#                            gname, 'EST5UTR_AS', i-gpos[2])
                     elif len(pos_map[gpos[0]][(i, gpos[3])])>2 and\
                             pos_map[gpos[0]][(i, gpos[3])][1].startswith('EST') and\
                             pos_map[gpos[0]][(i, gpos[3])][2] > i-gpos[2]:
                         pos_map[gpos[0]][(i, gpos[3])] =\
                             (gname, 'EST5UTR', i-gpos[2])
-                        pos_map[gpos[0]][(i, anti_strand(gpos[3]))] = (
-                            gname, 'EST5UTR_AS', i-gpos[2])
+#                        pos_map[gpos[0]][(i, anti_strand(gpos[3]))] = (
+#                            gname, 'EST5UTR_AS', i-gpos[2])
                     elif pos_map[gpos[0]][(i, gpos[3])][-1] == 'AS':
                         pos_map[gpos[0]][(i, gpos[3])] =\
                             (gname, 'EST5UTR', gpos[1]-i)
@@ -495,17 +495,17 @@ def position_to_gene(
                     if (i, gpos[3]) not in pos_map[gpos[0]]:
                         pos_map[gpos[0]][(i, gpos[3])] =\
                             (gname, 'EST3UTR', i-gpos[2])
-                    if (i, anti_strand(gpos[3])) not in pos_map[gpos[0]]:
-                        pos_map[gpos[0]][(i, anti_strand(gpos[3]))] = (
-                            gname, 'EST3UTR_AS', i-gpos[2])
+#                    if (i, anti_strand(gpos[3])) not in pos_map[gpos[0]]:
+#                        pos_map[gpos[0]][(i, anti_strand(gpos[3]))] = (
+#                            gname, 'EST3UTR_AS', i-gpos[2])
                     elif len(pos_map[gpos[0]][(i, gpos[3])])>2 and \
                             pos_map[gpos[0]][(i, gpos[3])][1].startswith('EST') and \
                             pos_map[gpos[0]][(i, gpos[3])][2] > i-gpos[2]:
                         pos_map[gpos[0]][(i, gpos[3])] =\
                             (gname, 'EST3UTR', i-gpos[2])
-                        if (i, anti_strand(gpos[3])) not in pos_map[gpos[0]]:
-                            pos_map[gpos[0]][(i, anti_strand(gpos[3]))] = (
-                                gname, 'EST3UTR_AS', i-gpos[2])
+#                        if (i, anti_strand(gpos[3])) not in pos_map[gpos[0]]:
+#                            pos_map[gpos[0]][(i, anti_strand(gpos[3]))] = (
+#                                gname, 'EST3UTR_AS', i-gpos[2])
                     elif pos_map[gpos[0]][(i, gpos[3])][-1] == 'AS':
                         pos_map[gpos[0]][(i, gpos[3])] =\
                             (gname, 'EST3UTR', gpos[1]-i)
@@ -515,17 +515,17 @@ def position_to_gene(
                     if (i, gpos[3]) not in pos_map[gpos[0]]:
                         pos_map[gpos[0]][(i, gpos[3])] =\
                             (gname, 'EST3UTR', gpos[1]-i)
-                    if (i, anti_strand(gpos[3])) not in pos_map[gpos[0]]:
-                        pos_map[gpos[0]][(i, anti_strand(gpos[3]))] = (
-                            gname, 'EST3UTR_AS', gpos[1]-i)
+#                    if (i, anti_strand(gpos[3])) not in pos_map[gpos[0]]:
+#                        pos_map[gpos[0]][(i, anti_strand(gpos[3]))] = (
+#                            gname, 'EST3UTR_AS', gpos[1]-i)
                     elif len(pos_map[gpos[0]][(i, gpos[3])])>2 and \
                             pos_map[gpos[0]][(i, gpos[3])][1].startswith('EST') and \
                             pos_map[gpos[0]][(i, gpos[3])][2] > gpos[1]-i:
                         pos_map[gpos[0]][(i, gpos[3])] =\
                             (gname, 'EST3UTR', gpos[1]-i)
-                        if (i, anti_strand(gpos[3])) not in pos_map[gpos[0]]:
-                            pos_map[gpos[0]][(i, anti_strand(gpos[3]))] = (
-                                gname, 'EST3UTR_AS', gpos[1]-i)
+#                        if (i, anti_strand(gpos[3])) not in pos_map[gpos[0]]:
+#                            pos_map[gpos[0]][(i, anti_strand(gpos[3]))] = (
+#                                gname, 'EST3UTR_AS', gpos[1]-i)
                     elif pos_map[gpos[0]][(i, gpos[3])][-1] == 'AS':
                         pos_map[gpos[0]][(i, gpos[3])] =\
                             (gname, 'EST3UTR', gpos[1]-i)
@@ -544,17 +544,17 @@ def position_to_gene(
                     if (i, gpos[3]) not in pos_map[gpos[0]] or\
                             pos_map[gpos[0]][(i, gpos[3])][-1]=='AS':
                         pos_map[gpos[0]][(i, gpos[3])] = (gname, '5UTR')
-                    if (i, anti_strand(gpos[3])) not in pos_map[gpos[0]]:
-                        pos_map[gpos[0]][(i, anti_strand(gpos[3]))] =\
-                            (gname, '5UTR_AS')
+#                    if (i, anti_strand(gpos[3])) not in pos_map[gpos[0]]:
+#                        pos_map[gpos[0]][(i, anti_strand(gpos[3]))] =\
+#                            (gname, '5UTR_AS')
             else:
                 for i in range(gpos[2], tu_promoters[first_tu_name]+1):
                     if (i, gpos[3]) not in pos_map[gpos[0]] or\
                             pos_map[gpos[0]][(i, gpos[3])][-1]=='AS':
                         pos_map[gpos[0]][(i, gpos[3])] = (gname, '5UTR')
-                    if (i, anti_strand(gpos[3])) not in pos_map[gpos[0]]:
-                        pos_map[gpos[0]][(i, anti_strand(gpos[3]))] =\
-                            (gname, '5UTR_AS')
+#                    if (i, anti_strand(gpos[3])) not in pos_map[gpos[0]]:
+#                        pos_map[gpos[0]][(i, anti_strand(gpos[3]))] =\
+#                            (gname, '5UTR_AS')
         # Set the 3' end of the gene
         if not est_3utr:
             last_tu_name = last_in_TU(gname)
@@ -566,17 +566,17 @@ def position_to_gene(
                     if (i, gpos[3]) not in pos_map[gpos[0]] or\
                             pos_map[gpos[0]][(i, gpos[3])][-1]=='AS':
                         pos_map[gpos[0]][(i, gpos[3])] = (gname, '3UTR')
-                    if (i, anti_strand(gpos[3])) not in pos_map[gpos[0]]:
-                        pos_map[gpos[0]][(i, anti_strand(gpos[3]))] =\
-                            (gname, '3UTR_AS')
+#                    if (i, anti_strand(gpos[3])) not in pos_map[gpos[0]]:
+#                        pos_map[gpos[0]][(i, anti_strand(gpos[3]))] =\
+#                            (gname, '3UTR_AS')
             else:
                 for i in range(min(tu_terminators[last_tu_name]), gpos[1]):
                     if (i, gpos[3]) not in pos_map[gpos[0]] or\
                             pos_map[gpos[0]][(i, gpos[3])][-1]=='AS':
                         pos_map[gpos[0]][(i, gpos[3])] = (gname, '3UTR')
-                    if (i, anti_strand(gpos[3])) not in pos_map[gpos[0]]:
-                        pos_map[gpos[0]][(i, anti_strand(gpos[3]))] =\
-                            (gname, '3UTR_AS')
+#                    if (i, anti_strand(gpos[3])) not in pos_map[gpos[0]]:
+#                        pos_map[gpos[0]][(i, anti_strand(gpos[3]))] =\
+#                            (gname, '3UTR_AS')
         
     # Close the gaps with IGR regions
     for chrn, chrlen in fsa_lens.items():
@@ -606,7 +606,7 @@ def position_to_gene(
                 last_gene = pos_map[chrn][(i, '+')]
             elif (i, '-') in pos_map[chrn] and len(pos_map[chrn][(i, '-')])== 1:
                 last_gene = pos_map[chrn][(i, '-')]
-            if (i, '+') in pos_map[chrn]:
+            if (i, '+') in pos_map[chrn] and (i, '-') in pos_map[chrn]:
                 i += 1
                 continue
             next_pos = i+1
@@ -639,11 +639,15 @@ def position_to_gene(
                     else:
                         igr_plus_tag = 'TU_AS'
                         igr_minus_tag = 'TU'
-            while (i, '+') not in pos_map[chrn] and i < chrlen:
-                pos_map[chrn][(i, '+')] =\
-                    (last_gene[0], next_gene[0], igr_plus_tag)
-                pos_map[chrn][(i, '-')] =\
-                    (last_gene[0], next_gene[0], igr_minus_tag)
+
+            while (((i, '+') not in pos_map[chrn]) or\
+                       ((i, '-') not in pos_map[chrn])) and i < chrlen:
+                if (i, '+') not in pos_map[chrn]:
+                    pos_map[chrn][(i, '+')] =\
+                        (last_gene[0], next_gene[0], igr_plus_tag)
+                if (i, '-') not in pos_map[chrn]:
+                    pos_map[chrn][(i, '-')] =\
+                        (last_gene[0], next_gene[0], igr_minus_tag)
                 i += 1
         # Decorate with REP elements positions
         if rep_pos:

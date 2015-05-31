@@ -61,7 +61,7 @@ Run this with::
 
 There are more arguments, some mentioned above, other can be seen using -h. In order to get gene annotations you should get the EcoCyc flat files of your organism, they require registration, point the data directory with --ec_dir. The names of the chromosomes are probably different from the bam file (the genome.fa file you used for mapping) and the EcoCyc files. You can give the script a dictionary from the bam to EcoCyc using a comma separated list of names where the name in EcoCyc follows the name in the bam file.
 
-In addition to printing the interactions, this script can compute the interaction free-energy using RNAup if --shuffles is > 0, it uses shuffled sequences to compute a p-value on this energy. 
+In addition to printing the interactions, this script can compute the interaction free-energy using RNAup (version 1 only, version 2 doesn't work) if --shuffles is > 0, it uses shuffled sequences to compute a p-value on this energy. 
 
 
 Generating Plots and Tracks

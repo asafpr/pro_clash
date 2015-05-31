@@ -5,7 +5,7 @@ def readme():
         return f.read()
     
 setup(name='pro_clash',
-      version='0.20',
+      version='0.21',
       description='Processing PRO-CLASH experiments results',
       long_description=readme(),
       classifiers=[

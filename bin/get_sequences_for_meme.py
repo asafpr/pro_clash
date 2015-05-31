@@ -71,7 +71,8 @@ def read_summary_file(sfile, genome, pad):
             retseq = genome[r1_chrn][r1_from-pad:r1_to+pad]
             if r1_str == '-':
                 retseq = retseq.reverse_complement()
-            ret_seqs_1['_'.join(r1_chrn, r1_from, r1_to, r1_str)] = retseq
+            ret_seqs_1['_'.join(
+                    [str(h) for h in [r1_chrn, r1_from, r1_to, r1_str]])] = retseq
             for i in range(r1_from-pad, r1_to+pad):
                 reported_as_1[r1_str].add(i)
         if len(reported_as_2[r2_str] & set(range(r2_from, r2_to))) == 0:
@@ -79,7 +80,8 @@ def read_summary_file(sfile, genome, pad):
             retseq = genome[r2_chrn][r2_from-pad:r2_to+pad]
             if r2_str == '-':
                 retseq = retseq.reverse_complement()
-            ret_seqs_2['_'.join(r2_chrn, r2_from, r2_to, r2_str)] = retseq
+            ret_seqs_2['_'.join(
+                    [str(h) for h in [r2_chrn, r2_from, r2_to, r2_str]])] = retseq
             for i in range(r2_from-pad, r2_to+pad):
                 reported_as_2[r2_str].add(i)
     return ret_seqs_1, ret_seqs_2
@@ -90,10 +92,10 @@ def main(argv=None):
     fsas = ecocyc_parser.read_fsas(settings.ec_dir)
     ret_seqs1, ret_seqs2 = read_summary_file(
         settings.summary_file, fsas, settings.pad)
-    with open("%s_1.fa"%settings.outhead) as out1:
+    with open("%s_1.fa"%settings.outhead, 'w') as out1:
         for k, v in ret_seqs1.items():
             out1.write(">%s\n%s\n"%(k, v))
-    with open("%s_2.fa"%settings.outhead) as out2:
+    with open("%s_2.fa"%settings.outhead, 'w') as out2:
         for k, v in ret_seqs2.items():
             out2.write(">%s\n%s\n"%(k, v))
     

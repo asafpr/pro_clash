@@ -19,7 +19,12 @@ def shuffle_difreq(rseq):
     for i in range(1, len(rseq)):
         # each following base is based of the frequency of the previous base
         # and their co-occurence in the original sequence.
-        shuff_seq.append(weighted_choice(freqs[shuff_seq[-1]].items()))
+        try:
+            shuff_seq.append(weighted_choice(freqs[shuff_seq[-1]].items()))
+        except KeyError:
+            # If the nt is never the first of di-nuc (only one appearance at
+            # the end of the sequence, choose the next nt as the first one
+            shuff_seq.append(weighted_choice(Counter(rseq).items()))
 
     return "".join(shuff_seq)
 

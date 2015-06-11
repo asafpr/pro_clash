@@ -81,6 +81,7 @@ def generate_transcripts_file(
     - `outfile`: An open out file
     - `utr_len`: Default UTR len
     - `ec_dir`: EcoCyc data dir
+    - `chr_dict`: map chromosome name in EcoCyc to another name (e.g. chr)
     """
     tu_promoters = read_promoters_data(ec_dir)
     tu_terminators = read_terminators_data(ec_dir)
@@ -133,12 +134,14 @@ def generate_transcripts_file(
         
 
 def generate_gff_file(
-    outfile, ec_dir='/home/users/assafp/Database/EcoCyc/current/data'):
+    outfile, ec_dir='/home/users/assafp/Database/EcoCyc/current/data',
+    chr_dict=None):
     """
     Generate a gff file using the Unique ID
     Arguments:
     - `outfile`: An open file
     - `ec_dir`: EcoCyc data dir
+    - `chr_dict`: map chromosome name in EcoCyc to another name (e.g. chr)
     """
     uid_pos, uid_names, uid_tudata, sRNAs_list, other_RNAs_list, rRNAs =\
         read_genes_data(ec_dir)
@@ -147,8 +150,13 @@ def generate_gff_file(
         sort_dict[gi] = gpos[1]
     for gname in sorted(sort_dict, key=sort_dict.get):
         gpos = uid_pos[gname]
+        if chr_dict:
+            try:
+                chrn = chr_dict[gpos[0]]
+            except KeyError:
+                chrn = gpos[0]
         outfile.write(
-            '%s\tEcoCyc\texon\t%d\t%d\t.\t%s\t.\tgene_id "%s"; transcript_id "%s";\n'%(gpos[0], gpos[1]+1, gpos[2], gpos[3], gname, gname))
+            '%s\tEcoCyc\texon\t%d\t%d\t.\t%s\t.\tgene_id "%s"; transcript_id "%s";\n'%(chrn, gpos[1]+1, gpos[2], gpos[3], gname, gname))
          
 
 def read_promoters_data(

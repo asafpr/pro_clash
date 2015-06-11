@@ -51,6 +51,9 @@ def process_command_line(argv):
         ' files will be the original ones. Use this when treating libraries'
         " built using Livny's protocol.")
     parser.add_argument(
+        '-p', '--processors', type=int, default=8,
+        help='Number of processors to be used by bwa aln.')
+    parser.add_argument(
         '-f', '--feature', default='exon',
         help='Name of features to count on the GTF file (column 2).')
     parser.add_argument(
@@ -59,10 +62,6 @@ def process_command_line(argv):
     parser.add_argument(
         '-v', '--overlap', type=int, default=5,
         help='Minimal required overlap between the fragment and the feature.')
-    parser.add_argument(
-        '-q', '--quality_cutoff', type=float, default=25,
-        help='Used by cutadapt and BWA if no adapter is given to remove'
-        "nucleotides with low quality from the 3' end.")
     parser.add_argument(
         '-m', '--allowed_mismatches', type=float, default=2,
         help="Allowed mismatches for BWA mapping.")
@@ -80,7 +79,7 @@ def process_command_line(argv):
         '-S', '--samtools_cmd', default='samtools',
         help='Samtools executable.')
     parser.add_argument(
-        '-a', '--params_aln', default='-t 8 -k 1 -R 200 -l 20',
+        '-a', '--params_aln', default='-k 1 -R 200 -l 20',
         help='Additional parameters for aln function of bwa.')
     parser.add_argument(
         '-s', '--sampe_params', default='-a 1500 -P',
@@ -122,7 +121,8 @@ def main(argv=None):
             settings.bwa_exec, r1_name, r2_name,
             settings.dirout, outhead, settings.allowed_mismatches,
             settings.genome_fasta, settings.params_aln, settings.sampe_params,
-            settings.samse_params, settings.samtools_cmd)
+            settings.samse_params, settings.samtools_cmd,
+            processors=settings.processors)
         samfile = pysam.Samfile(bamname)
         if settings.genes_gff:
             lib_order.append(libname)

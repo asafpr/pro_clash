@@ -1,3 +1,4 @@
+
 #!/usr/bin/env python
 
 """
@@ -85,19 +86,19 @@ def process_command_line(argv):
         'where there is no signal, the poly G might just be noise.'
         ' When using other sequencing technologies set to 1.')
     parser.add_argument(
+        '-p', '--processors', type=int, default=8,
+        help='Number of processors to be used by bwa aln.')
+    parser.add_argument(
         '--bwa_exec', default='bwa',
         help='bwa command')
     parser.add_argument(
         '-S', '--samtools_cmd', default='samtools',
         help='Samtools executable.')
     parser.add_argument(
-        '--params_aln', default='-t 8 -k 1 -R 200 -l 11',
+        '--params_aln', default='-k 1 -R 200 -l 11',
         help='Additional parameters for aln function of bwa.')
     parser.add_argument(
-        '--sampe_params', default='-a 1500 -P -n 100',
-        help='Additional parameters for sampe function of bwa.')
-    parser.add_argument(
-        '--samse_params', default='-n 100',
+        '--samse_params', default='-n 1000',
         help='Additional parameters for samse function of bwa.')
     settings = parser.parse_args(argv)
 
@@ -131,8 +132,8 @@ def main(argv=None):
                 settings.bwa_exec, fqname, None,
                 settings.dirout, bamheadname, settings.max_mismatches,
                 settings.genome_fasta, settings.params_aln,
-                settings.sampe_params, settings.samse_params,
-                settings.samtools_cmd)
+                '', settings.samse_params,
+                settings.samtools_cmd, processors=settings.processors)
             bamin = pysam.Samfile(bamname)
             reads_in.append(pro_clash.read_bam_file(
                     bamin, bamin.references, settings.allowed_mismatches))
@@ -140,12 +141,6 @@ def main(argv=None):
             sys.stdout, reads_in[0], reads_in[1], bfin.references,
             settings.distance, not settings.keep_circular,
             trans_dict)
-                                    
-        
-        
-        
-    # application code here, like:
-    # run(settings, args)
     return 0        # success
 
 if __name__ == '__main__':

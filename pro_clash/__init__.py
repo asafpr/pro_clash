@@ -31,7 +31,8 @@ def flat_list(list_to_flat):
 
 # Functions for simple mapping (single fragment)
 def run_bwa(bwa_cmd, fname1, fname2, output_dir, output_prefix, mismatches,
-            fasta_genome, params_aln, params_sampe, params_samse, samtools_cmd):
+            fasta_genome, params_aln, params_sampe, params_samse, samtools_cmd,
+            processors=1):
     """
     Run bwa on paired or single end fastq files. write a sorted  bam and a bai
     file
@@ -47,14 +48,15 @@ def run_bwa(bwa_cmd, fname1, fname2, output_dir, output_prefix, mismatches,
     - `params_sampe`: extra paarmeters for sampe execution
     - `params_samse`: extra parameters for samse execution
     - `samtools_cmd`: samtools command
+    - `processors`: Number of processors to utilize
 
     Return
     - `bamfile`: Output bam file name
     """
     # Run aln of bwa on both files
     sai1 = NamedTemporaryFile(dir=output_dir)
-    call([bwa_cmd, 'aln', '-n', str(mismatches), params_aln,
-          fasta_genome, fname1], stdout=sai1)
+    call([bwa_cmd, 'aln', '-n', str(mismatches), '-t', str(processors),
+          params_aln, fasta_genome, fname1], stdout=sai1)
     if fname2:
         sai2 = NamedTemporaryFile(dir=output_dir)
         next_cmd = [bwa_cmd, 'aln', '-n', str(mismatches),

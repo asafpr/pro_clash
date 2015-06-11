@@ -74,7 +74,7 @@ def read_fsas(ec_dir='/home/users/assafp/Database/EcoCyc/current/data'):
 
 def generate_transcripts_file(
     outfile, utr_len=100,
-    ec_dir='/home/users/assafp/Database/EcoCyc/current/data'):
+    ec_dir='/home/users/assafp/Database/EcoCyc/current/data', chr_dict=None):
     """
     Write a gff file with transcripts boundaries
     Arguments:
@@ -94,7 +94,12 @@ def generate_transcripts_file(
     for tu in tu_genes:
         tu_str = uid_pos[tu_genes[tu][0]][3]
         tu_chrn = uid_pos[tu_genes[tu][0]][0]
-        tu_boundaries[tu] = [0, 0, tu_str]
+        if chr_dict:
+            try:
+                tu_chrn = chr_dict[tu_chrn]
+            except KeyError:
+                pass
+        tu_boundaries[tu] = [0, 0, tu_str, tu_chrn]
         if tu in tu_promoters:
             if tu_str == '+':
                 tu_boundaries[tu][0] = tu_promoters[tu]
@@ -124,7 +129,7 @@ def generate_transcripts_file(
     # Now write all the tus to a gff file
     for tu, tub in tu_boundaries.items():
         outfile.write(
-            '%s\tEcoCyc\texon\t%d\t%d\t.\t%s\t.\tgene_id "%s"; transcript_id "%s";\n'%(tu_chrn, tub[0]+1, tub[1], tub[2], tu, tu))
+            '%s\tEcoCyc\texon\t%d\t%d\t.\t%s\t.\tgene_id "%s"; transcript_id "%s";\n'%(tub[3], tub[0]+1, tub[1], tub[2], tu, tu))
         
 
 def generate_gff_file(
@@ -487,7 +492,7 @@ def position_to_gene(
 #                            gname, 'EST5UTR_AS', i-gpos[2])
                     elif pos_map[gpos[0]][(i, gpos[3])][-1] == 'AS':
                         pos_map[gpos[0]][(i, gpos[3])] =\
-                            (gname, 'EST5UTR', gpos[1]-i)
+                            (gname, 'EST5UTR', i-gpos[2])
 
         if est_3utr:
             if gpos[3] == '+':
@@ -508,7 +513,7 @@ def position_to_gene(
 #                                gname, 'EST3UTR_AS', i-gpos[2])
                     elif pos_map[gpos[0]][(i, gpos[3])][-1] == 'AS':
                         pos_map[gpos[0]][(i, gpos[3])] =\
-                            (gname, 'EST3UTR', gpos[1]-i)
+                            (gname, 'EST3UTR', i-gpos[2])
 
             else: # Minus strand
                 for i in range(gpos[1]-utr_len, gpos[1]):

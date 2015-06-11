@@ -21,7 +21,9 @@ def process_command_line(argv):
         argv = sys.argv[1:]
 
     # initialize the parser object, replace the description
-    parser = argparse.ArgumentParser(description='Generate circos data file.')
+    parser = argparse.ArgumentParser(
+        description='Generate circos data file.',
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument(
         'reads_in',
         help='An output file of map_chimeric_fragments.py with the chimeric'

@@ -5,7 +5,7 @@ def readme():
         return f.read()
     
 setup(name='pro_clash',
-      version='0.23',
+      version='0.24',
       description='Processing PRO-CLASH experiments results',
       long_description=readme(),
       classifiers=[
@@ -29,6 +29,6 @@ setup(name='pro_clash',
       license='MIT',
       packages=['pro_clash'],
       install_requires=[
-        'scipy', 'numpy', 'biopython'],
+        'scipy', 'numpy', 'pysam', 'biopython'],
       include_package_data=True,
       zip_safe=False)

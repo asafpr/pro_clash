@@ -95,7 +95,7 @@ def process_command_line(argv):
         '-S', '--samtools_cmd', default='samtools',
         help='Samtools executable.')
     parser.add_argument(
-        '--params_aln', default='-k 1 -R 200 -l 11',
+        '--params_aln', default='-k 2 -l 6 -N -M 0',
         help='Additional parameters for aln function of bwa.')
     parser.add_argument(
         '--samse_params', default='-n 1000',

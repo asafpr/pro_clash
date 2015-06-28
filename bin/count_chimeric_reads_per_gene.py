@@ -31,6 +31,15 @@ def process_command_line(argv):
         'reads_files', nargs='+',
         help='Reads files, output of map_chimeric_fragments.py')
     parser.add_argument(
+        '-1', '--only_first', action='store_true', default=False,
+        help='Count only the first in fragment.')
+    parser.add_argument(
+        '-2', '--only_second', action='store_true', default=False,
+        help='Count only the second in fragment.')
+    parser.add_argument(
+        '-q', '--quiet', action='store_true', default=False,
+        help="Don't print header and antisense/IGR statistics.")
+    parser.add_argument(
         '-f', '--feature', default='exon',
         help='Name of features to count on the GTF file (column 2).')
     parser.add_argument(
@@ -45,7 +54,9 @@ def process_command_line(argv):
     settings = parser.parse_args(argv)
 
     return settings
-def count_features(features, infile, overlap, length=25):
+def count_features(
+    features, infile, overlap, length=25, ignore_first=False,
+    ignore_second=False):
     """
     Count the number of reads for each feature
     Arguments:
@@ -53,11 +64,15 @@ def count_features(features, infile, overlap, length=25):
     - `infile`: An open file, position and strand in cols 0-5
     - `overlap`: Minimal overlap between feature and read
     - `length`: Read length. added to first read and reduced from second
+    - `ignore_first`: Count only from the second end
+    - `ignore_second`: Count only from the first end
     """
     def update_counter(rfrom, rto, rstr, chrname,  fcounts):
         """
         Update the counters of features
         """
+        if chrname+rstr not in features:
+            return 
         in_feature = False
         rcounts = defaultdict(int)
         for fset in features[chrname+rstr][rfrom:rto]:
@@ -102,8 +117,10 @@ def count_features(features, infile, overlap, length=25):
         if str2 == '+':
             r2_to = r2i+1
             r2i = r2_to - length
-        update_counter(r1i, r1_to, str1, r1_chrn, fcounts)
-        update_counter(r2i, r2_to, str2, r2_chrn, fcounts)
+        if not ignore_first:
+            update_counter(r1i, r1_to, str1, r1_chrn, fcounts)
+        if not ignore_second:
+            update_counter(r2i, r2_to, str2, r2_chrn, fcounts)
     return fcounts
 
 def main(argv=None):
@@ -119,10 +136,15 @@ def main(argv=None):
         sys.stderr.write('%s\n'%str(r1_name))
         lib_order.append(r1_name)
         all_counts[r1_name] = count_features(
-            pos_feat_list, open(r1_name), settings.overlap, length=25)
+            pos_feat_list, open(r1_name), settings.overlap, length=25,
+            ignore_first=settings.only_second,
+            ignore_second=settings.only_first)
     outt = csv.writer(sys.stdout, delimiter='\t')
-    outt.writerow(['Gene name'] + lib_order)
+    if not settings.quiet:
+        outt.writerow(['Gene name'] + lib_order)
     for g in sorted(list(all_features)):
+        if settings.quiet and g.startswith('~'):
+            continue
         row_out = [g]
         for libn in lib_order:
             row_out.append(all_counts[libn][g])

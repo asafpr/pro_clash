@@ -344,7 +344,8 @@ def read_transcripts(trans_gff, feature='exon', identifier='gene_id'):
     return tus
 
 
-def get_unmapped_reads(samfile, outfile1, outfile2, length, maxG, rev=False):
+def get_unmapped_reads(
+    samfile, outfile1, outfile2, length, maxG, rev=False, all_reads=False):
     """
     Get the list of unmapped paired reads and write the reads (mate 1 and 2) to
     the fastq files outfile1 and outfile2. The names of the reads is the same
@@ -360,14 +361,18 @@ def get_unmapped_reads(samfile, outfile1, outfile2, length, maxG, rev=False):
     - `maxG`: Maximal fraction of G's in any of the reads
     - `rev`: Reads are reverse complement (Livny's protocol). Has no influence
              on single-end reads
+    - `all_reads`: Return all reads, including mapped ones
     """
     for read in samfile.fetch(until_eof=True):
-        if (not read.is_paired) and read.is_unmapped:
+        if (not read.is_paired) and (read.is_unmapped or all_reads):
             if read.is_reverse:
-                # This can't happen
-                continue
+                # This can't happen unless all_reads is set to True
+                reverse_seq = True
             cseq = read.seq
             cqual = read.qual
+            if reverse_seq:
+                cseq = str(Seq(cseq).reverse_complement())
+                cqual = cqual[::-1]
             if cseq.count('G', 0, length) >= int(maxG*length) or\
                     cseq.count('G', -length) >= int(maxG*length):
                 continue
@@ -378,7 +383,7 @@ def get_unmapped_reads(samfile, outfile1, outfile2, length, maxG, rev=False):
                     read.qname, cseq[-length:],
                     cqual[-length:]))
             continue
-        if (read.is_unmapped or read.mate_is_unmapped or\
+        if (all_reads or read.is_unmapped or read.mate_is_unmapped or\
                 (not read.is_proper_pair)) and read.is_paired:
             if read.is_read1==rev:
                 ouf = outfile2
@@ -555,7 +560,7 @@ def read_bam_file(bamfile, chrnames_bam, max_NM=0):
 
 def write_reads_table(
     outfile, read1_reads, read2_reads, chrnames_bam, maxdist,
-    remove_self, trans_gff=None):
+    remove_self, trans_gff=None, write_single=None):
     """
     Read the lists of reads and print a list of chimeric fragments after
     removing concordant reads
@@ -568,6 +573,7 @@ def write_reads_table(
     - `maxdist`: Maximal distance between concordant reads
     - `remove_self`: Remove circular RNAs
     - `trans_gff`: A dictionary with transcripts positions, optional
+    - `write_single`: Write reads that are not chimeric to this file
     """
     
 
@@ -575,10 +581,14 @@ def write_reads_table(
         if rname not in read2_reads:
             continue
         # If the two reads share at least one gene they are excluded
+        write_to = outfile
         if test_concordance(
             read1_reads[rname], read2_reads[rname], maxdist,
             chrnames_bam, trans_gff=trans_gff, remove_self=remove_self):
-            continue
+            if write_single:
+                write_to = write_single
+            else:
+                continue
         read1_chrn = chrnames_bam[read1_reads[rname].tid]
         read2_chrn = chrnames_bam[read2_reads[rname].tid]
         if not read2_reads[rname].is_reverse:
@@ -593,7 +603,7 @@ def write_reads_table(
         else:
             end1_pos = read1_reads[rname].pos
             end1_str = '+'
-        outfile.write(
+        write_to.write(
             "%s\t%d\t%s\t%s\t%d\t%s\t%s\n"%(
                 read1_chrn, end1_pos+1, end1_str, read2_chrn, end2_pos+1,
                 end2_str, rname))
@@ -874,18 +884,20 @@ def list_of_genes(
                 min2_pos = min(min2_pos, r2p)
                 max2_pos = max(max2_pos, r2p)
                 if genes_dict:
-                    if r1_str == '-':
-                        drange = range(max(r1p-rlen,0), r1p)
-                    else:
-                        drange = range(r1p, r1p+rlen)
-                    for i in drange:
-                        cdict_r1[genes_dict[r1_chrnEC][(i, r1_str)]] += 1
-                    if r2_str == '-':
-                        drange = range(r2p, r2p+rlen)
-                    else:
-                        drange = range(max(r2p-rlen,0), r2p)
-                    for i in drange:
-                        cdict_r2[genes_dict[r2_chrnEC][(i, r2_str)]] += 1
+                    if r1_chrnEC in genes_dict:
+                        if r1_str == '-':
+                            drange = range(max(r1p-rlen,0), r1p)
+                        else:
+                            drange = range(r1p, r1p+rlen)
+                        for i in drange:
+                            cdict_r1[genes_dict[r1_chrnEC][(i, r1_str)]] += 1
+                    if r2_chrnEC in genes_dict:
+                        if r2_str == '-':
+                            drange = range(r2p, r2p+rlen)
+                        else:
+                            drange = range(max(r2p-rlen,0), r2p)
+                        for i in drange:
+                            cdict_r2[genes_dict[r2_chrnEC][(i, r2_str)]] += 1
     # reduce the AS counts to 1
     for k in cdict_r1:
         if k[-1] == 'AS':
@@ -938,7 +950,7 @@ def get_names(gname, uid_names, annotations):
             cn2 = uid_names[gname[1]]['COMMON-NAME']
         except KeyError:
             cn2 = gname[1]
-        p0_name += '_%s_%s'%(cn2, gname[2])
+        p0_name += '/%s/%s'%(cn2, gname[2])
         try:
             p1_desc = annotations[cn2]
         except KeyError:
@@ -946,7 +958,7 @@ def get_names(gname, uid_names, annotations):
         p0_desc += ' : %s'%p1_desc
         
     elif len(gname)>=2:
-        p0_name += '_%s'%gname[1]
+        p0_name += '/%s'%gname[1]
         
     return p0_name, p0_desc
 
@@ -1099,7 +1111,10 @@ def report_interactions(
         if not pos_maps:
             sorted_order.append(rkey)
             continue
-                
+        if not genes1_list:
+            genes1_list = ['-']
+        if not genes2_list:
+            genes2_list = ['-']
         gname1 = genes1_list[0]
         gname2 = genes2_list[0]
         g1common, g1desc = get_names(gname1, uid_names, desc)

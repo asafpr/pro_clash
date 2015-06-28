@@ -59,6 +59,11 @@ def process_command_line(argv):
         '-d', '--dirout', default='.',
         help='Output directory, default is this directory.')
     parser.add_argument(
+        '-a', '--all_reads',
+        help='Map all reads in the BAM file, write all the fragments that are'
+        ' not chimeric to the file specified here e.g. '
+        '-a single_fragments_mapping.txt. This will serve for normalization.')
+    parser.add_argument(
         '--keep_circular', default=False, action='store_true',
         help='Remove reads that are probably a result of circular RNAs by'
         ' default. If the reads are close but in opposite order they will be'
@@ -78,6 +83,9 @@ def process_command_line(argv):
         help='This number of mismatches is allowed between the a match and '
         'the genome. If there are mapped reads with less than --max_mismatches'
         ' mismatches but more than this number the read will be ignored.')
+    parser.add_argument(
+        '--skip_mapping', action='store_true', default=False,
+        help='Skip the mapping step, use previously mapped files.')
     parser.add_argument(
         '--maxG', type=float, default=0.8,
         help='If a read has more than this fraction of Gs remove this read'
@@ -112,34 +120,45 @@ def main(argv=None):
         trans_dict = None
     # Get the ends of the reads from the bam files
 #    sys.stderr.write('%s\n'%str(settings.bamfiles))
+    if settings.all_reads:
+        try:
+            outall = open(settings.all_reads, 'w')
+        except IOError:
+            outall = None
+    else:
+        outall = None
     for bf in pro_clash.flat_list(settings.bamfiles):
         bfin = pysam.Samfile(bf)
         outhead = bf.rsplit('.', 1)[0]
         libname = outhead.rsplit('/',1)[-1]
         fsq1name = "%s/%s_ends_1.fastq"%(settings.dirout, libname)
-        fsq1 = open(fsq1name, 'w')
         fsq2name = "%s/%s_ends_2.fastq"%(settings.dirout, libname)
-        fsq2 = open(fsq2name, 'w')
-        pro_clash.get_unmapped_reads(
-            bfin, fsq1, fsq2, settings.length, settings.maxG,
-            rev=settings.reverse_complement)
+        if not settings.skip_mapping:
+            fsq1 = open(fsq1name, 'w')
+            fsq2 = open(fsq2name, 'w')
+            pro_clash.get_unmapped_reads(
+                bfin, fsq1, fsq2, settings.length, settings.maxG,
+                rev=settings.reverse_complement, all_reads=settings.all_reads)
         # Map the fastq files to the genome
         reads_in = []
         for fqname in (fsq1name, fsq2name):
             bamheadname = fqname.rsplit('.',1)[0].rsplit('/',1)[-1]
-            bamname = pro_clash.run_bwa(
-                settings.bwa_exec, fqname, None,
-                settings.dirout, bamheadname, settings.max_mismatches,
-                settings.genome_fasta, settings.params_aln,
-                '', settings.samse_params,
-                settings.samtools_cmd, processors=settings.processors)
+            if settings.skip_mapping:
+                bamname = "%s/%s.bam"%(settings.dirout, bamheadname)
+            else:
+                bamname = pro_clash.run_bwa(
+                    settings.bwa_exec, fqname, None,
+                    settings.dirout, bamheadname, settings.max_mismatches,
+                    settings.genome_fasta, settings.params_aln,
+                    '', settings.samse_params,
+                    settings.samtools_cmd, processors=settings.processors)
             bamin = pysam.Samfile(bamname)
             reads_in.append(pro_clash.read_bam_file(
                     bamin, bamin.references, settings.allowed_mismatches))
         pro_clash.write_reads_table(
             sys.stdout, reads_in[0], reads_in[1], bfin.references,
             settings.distance, not settings.keep_circular,
-            trans_dict)
+            trans_dict, write_single=outall)
     return 0        # success
 
 if __name__ == '__main__':

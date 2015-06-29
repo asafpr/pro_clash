@@ -653,6 +653,69 @@ def read_reads_table(reads_in, seglen, rRNAs=None):
         total_interactions)
 
 
+def update_exp_in_vitro(region_interactions, region_ints_as1, region_ints_as2, sings_as_1, sings_as_2, cross_as_1, cross_as_2, ts_as_1, ts_as_2, cross_ratio):
+    """
+    This method computes the expected number of in-vitro interactions using
+    data from experiments with foreign RNA. Assuming the number of in-vitro
+    interactions is proportional to the number of single interactions across
+    experiments, one can divide the number of cross interactions of reg1 with
+    the number of cross interactions of reg2, divide by the multiplication of
+    singles of the two regions and multiply in the multiplication of the number
+    of single reads in this library. The number of singles should be normalized
+    to all single reads in the library. The number is then divided by
+    cross_ratio which is the fraction of foreign RNA in the tube, if it's 0.5
+    it means that the amount of self and foreign RNA was equal and if we have
+    10 interactions with foreign, it might as well have another 10 with self.
+    Arguments:
+    - `region_interactions`: returned by read_reads_table
+    - `region_ints_as1`: as above
+    - `region_ints_as2`: as above
+    - `sings_as_1`: returned from read_reads_table for the foreign singles
+    - `sings_as_2`:as above
+    - `cross_as_1`: reads for the cross ligation
+    - `cross_as_2`: as above
+    - `ts_as_1`: this library singles
+    - `ts_as_2`: as above
+    - `cross_ratio`: A float with the value or estimate of foreign RNA/overall
+                     RNA
+    """
+    total_counts = sum(region_ints_as1.values())
+    norm_factor_as_1 = {}
+    norm_factor_as_2 = {}
+    # The fragments as 1 can't also be as 2 since it's cross species
+    sum_cross_as_1 = float(sum(cross_as_1.values()))
+    sum_cross_as_2 = float(sum(cross_as_2.values()))
+    sum_all_cross = sum_cross_as_1 + sum_cross_as_2
+    sum_singles_as_1 = float(sum(sings_as_1.values()))
+    sum_singles_as_2 = float(sum(sings_as_2.values()))
+    sum_ts_as_1 = float(sum(ts_as_1.values()))
+    sum_ts_as_2 = float(sum(ts_as_2.values()))
+    for region in cross_as_1:
+        norm_factor_as_1[region] = ((cross_as_1[region]/sum_cross_as_1)/\
+            ((sings_as_1[region] or 1)/sum_singles_as_1))*\
+            (ts_as_1[region]/sum_ts_as_1)
+    for region in cross_as_2:
+        norm_factor_as_2[region] = ((cross_as_2[region]/sum_cross_as_2)/\
+            ((sings_as_2[region] or 1)/sum_singles_as_2))*\
+            (ts_as_2[region]/sum_ts_as_2)
+    for reg1, r1data in region_interactions.items():
+        if reg1 not in norm_factor_as_1:
+            continue
+        for reg2, its in r1data.items():
+            if reg2 not in norm_factor_as_2:
+                continue
+            counts = len(its)
+            ivt_counts = min(
+                int(norm_factor_as_1[reg1]*norm_factor_as_2[reg2]*sum_all_cross/cross_ratio),
+                counts)
+            counts -= ivt_counts
+            region_interactions[reg1][reg2] = its[:counts]
+            region_ints_as1[reg1] -= ivt_counts
+            region_ints_as2[reg2] -= ivt_counts
+            total_counts -=ivt_counts
+    return total_counts
+
+
 
 def minpv_regions(
     reg1, reg2, r_int, t_int_as1, t_int_as2, tot_int, f_int, seglen, maxsegs,

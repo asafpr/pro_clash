@@ -41,6 +41,27 @@ def process_command_line(argv):
         '--ribozero', default=False, action='store_true',
         help='Remove rRNA from the list of chimeric reads.')
     parser.add_argument(
+        '--remove_single',
+        help='Name of file with single reads mapped to the genome. This is the'
+        ' first file needed for in-vitro reads removal. The file is generated'
+        ' using the map_chimeric_fragments.py script with the -a flag.')
+    parser.add_argument(
+        '--remove_cross',
+        help='This is the second file needed for in-vitro removal. This '
+        'includes fragments that are ligation with foreign RNA. The number of'
+        ' cross RNA is divided by single, normalized, multiplied by number'
+        ' of single in this library and multiplied by expected in-vitro '
+        ' fraction of fragments.')
+    parser.add_argument(
+        '--this_single',
+        help='In order to remove in-vitro reads this file should be the -a'
+        ' parameter of map_chimeric_fragments.py of this library.')
+    parser.add_argument(
+        '--cross_ratio', type=float, default=0.5,
+        help='Estimated fraction of cross in-vitro interactions among all'
+        ' in-vitro interactions. This can be measured using the relative '
+        'amount of foreign RNA in the mixture.')
+    parser.add_argument(
         '--est_utr_lens', type=int, default=100,
         help='Estimated UTRs lengths when there is not data.')
     parser.add_argument(
@@ -128,6 +149,27 @@ def main(argv=None):
         open(settings.reads_in), settings.seglen, rr_pos)
     sys.stderr.write("Total interactions: %d\n"%total_interactions)
 
+    # Remove in-vitro estimated counts if data given
+    if settings.remove_single and settings.remove_cross and\
+            settings.this_single:
+        _, sings_as_1, sings_as_2, tot_sing =\
+            pro_clash.read_reads_table(
+            open(settings.remove_single), settings.seglen, rr_pos)
+        _, cross_as_1, cross_as_2, tot_cross =\
+            pro_clash.read_reads_table(
+            open(settings.remove_cross), settings.seglen, rr_pos)
+        _, ts_as_1, ts_as_2, tot_ts =\
+            pro_clash.read_reads_table(
+            open(settings.this_single), settings.seglen, rr_pos)
+        # Computes the expected number of in-vitro interactions for each
+        # two interacting regions using these numbers.
+        total_interactions = pro_clash.update_exp_in_vitro(
+            region_interactions, region_ints_as1, region_ints_as2, sings_as_1,
+            sings_as_2, cross_as_1, cross_as_2, ts_as_1, ts_as_2,
+            settings.cross_ratio)
+        sys.stderr.write("Total interactions after in-vitro removal: %d\n"%total_interactions)
+    else:
+        sys.stderr.write("No in-vitro reduction\n")
     # Now run the test for each pair of interacting regions
     found_in_interaction = defaultdict(bool)
     interacting_regions = []

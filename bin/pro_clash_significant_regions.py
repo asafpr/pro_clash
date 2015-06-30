@@ -57,10 +57,10 @@ def process_command_line(argv):
         help='In order to remove in-vitro reads this file should be the -a'
         ' parameter of map_chimeric_fragments.py of this library.')
     parser.add_argument(
-        '--cross_ratio', type=float, default=0.5,
-        help='Estimated fraction of cross in-vitro interactions among all'
-        ' in-vitro interactions. This can be measured using the relative '
-        'amount of foreign RNA in the mixture.')
+        '--vitro_ratio', type=float, default=0.5,
+        help='Estimated fraction of in-vitro interactions among all'
+        ' interactions. This can be measured using the relative '
+        'amount of foreign RNA in the mixture and their in-vitro interactions.')
     parser.add_argument(
         '--est_utr_lens', type=int, default=100,
         help='Estimated UTRs lengths when there is not data.')
@@ -134,8 +134,11 @@ def process_command_line(argv):
 def main(argv=None):
     settings = process_command_line(argv)
     if settings.ribozero:
-        uid_pos,_,_,_,_,rRNAs = pro_clash.ecocyc_parser.read_genes_data(
-            settings.ec_dir)
+        try:
+            uid_pos,_,_,_,_,rRNAs = pro_clash.ecocyc_parser.read_genes_data(
+                settings.ec_dir)
+        except IOError:
+            rRNAs = None
         rr_pos = []
         chr_dict = dict(zip(
                 settings.EC_chrlist.split(',')[1::2],
@@ -166,7 +169,7 @@ def main(argv=None):
         total_interactions = pro_clash.update_exp_in_vitro(
             region_interactions, region_ints_as1, region_ints_as2, sings_as_1,
             sings_as_2, cross_as_1, cross_as_2, ts_as_1, ts_as_2,
-            settings.cross_ratio)
+            settings.vitro_ratio)
         sys.stderr.write("Total interactions after in-vitro removal: %d\n"%total_interactions)
     else:
         sys.stderr.write("No in-vitro reduction\n")

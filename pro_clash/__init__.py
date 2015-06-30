@@ -653,7 +653,10 @@ def read_reads_table(reads_in, seglen, rRNAs=None):
         total_interactions)
 
 
-def update_exp_in_vitro(region_interactions, region_ints_as1, region_ints_as2, sings_as_1, sings_as_2, cross_as_1, cross_as_2, ts_as_1, ts_as_2, cross_ratio):
+def update_exp_in_vitro(
+    region_interactions, region_ints_as1, region_ints_as2, sings_as_1,
+    sings_as_2, cross_as_1, cross_as_2, ts_as_1, ts_as_2, vitro_ratio,
+    factor_jump=10):
     """
     This method computes the expected number of in-vitro interactions using
     data from experiments with foreign RNA. Assuming the number of in-vitro
@@ -676,16 +679,18 @@ def update_exp_in_vitro(region_interactions, region_ints_as1, region_ints_as2, s
     - `cross_as_2`: as above
     - `ts_as_1`: this library singles
     - `ts_as_2`: as above
-    - `cross_ratio`: A float with the value or estimate of foreign RNA/overall
+    - `vitro_ratio`: A float with the estimate of in-vitro interactions out of
+                     all interactions in the test library
                      RNA
     """
     total_counts = sum(region_ints_as1.values())
+    all_counts = total_counts
     norm_factor_as_1 = {}
     norm_factor_as_2 = {}
     # The fragments as 1 can't also be as 2 since it's cross species
     sum_cross_as_1 = float(sum(cross_as_1.values()))
     sum_cross_as_2 = float(sum(cross_as_2.values()))
-    sum_all_cross = sum_cross_as_1 + sum_cross_as_2
+#    sum_all_cross = sum_cross_as_1 + sum_cross_as_2
     sum_singles_as_1 = float(sum(sings_as_1.values()))
     sum_singles_as_2 = float(sum(sings_as_2.values()))
     sum_ts_as_1 = float(sum(ts_as_1.values()))
@@ -698,21 +703,34 @@ def update_exp_in_vitro(region_interactions, region_ints_as1, region_ints_as2, s
         norm_factor_as_2[region] = ((cross_as_2[region]/sum_cross_as_2)/\
             ((sings_as_2[region] or 1)/sum_singles_as_2))*\
             (ts_as_2[region]/sum_ts_as_2)
-    for reg1, r1data in region_interactions.items():
-        if reg1 not in norm_factor_as_1:
-            continue
-        for reg2, its in r1data.items():
-            if reg2 not in norm_factor_as_2:
+    sum_of_vitro = 0
+    vitro_counts = defaultdict(dict)
+    mult_factor = vitro_ratio
+    while sum_of_vitro < all_counts*min(vitro_ratio,1):
+        sum_of_vitro = 0
+        for reg1, r1data in region_interactions.items():
+            if reg1 not in norm_factor_as_1:
                 continue
-            counts = len(its)
-            ivt_counts = min(
-                int(norm_factor_as_1[reg1]*norm_factor_as_2[reg2]*sum_all_cross/cross_ratio),
-                counts)
+            for reg2, its in r1data.items():
+                if reg2 not in norm_factor_as_2:
+                    continue
+                counts = len(its)
+
+                vitro_counts[reg1][reg2] = min(
+                    int(norm_factor_as_1[reg1]*norm_factor_as_2[reg2]*all_counts*mult_factor),
+                    counts)
+                sum_of_vitro += vitro_counts[reg1][reg2]
+        sys.stderr.write("%d\t%f\n"%(sum_of_vitro, mult_factor))
+        mult_factor += factor_jump
+    for reg1, r1data in vitro_counts.items():
+        for reg2, ivt_counts in r1data.items():
+            its_list = region_interactions[reg1][reg2]
+            counts = len(its_list)
             counts -= ivt_counts
-            region_interactions[reg1][reg2] = its[:counts]
+            region_interactions[reg1][reg2] = its_list[:counts]
             region_ints_as1[reg1] -= ivt_counts
             region_ints_as2[reg2] -= ivt_counts
-            total_counts -=ivt_counts
+            total_counts -= ivt_counts
     return total_counts
 
 

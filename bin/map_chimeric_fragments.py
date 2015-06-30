@@ -64,6 +64,10 @@ def process_command_line(argv):
         ' not chimeric to the file specified here e.g. '
         '-a single_fragments_mapping.txt. This will serve for normalization.')
     parser.add_argument(
+        '-A', '--add_all_reads', default=False, action='store_true',
+        help='Map all reads in the BAM file, write all the fragments that are'
+        ' not chimeric to the output file (stdout)')
+    parser.add_argument(
         '--keep_circular', default=False, action='store_true',
         help='Remove reads that are probably a result of circular RNAs by'
         ' default. If the reads are close but in opposite order they will be'
@@ -125,6 +129,8 @@ def main(argv=None):
             outall = open(settings.all_reads, 'w')
         except IOError:
             outall = None
+    elif settings.add_all_reads:
+        outall = sys.stdout
     else:
         outall = None
     for bf in pro_clash.flat_list(settings.bamfiles):
@@ -138,7 +144,7 @@ def main(argv=None):
             fsq2 = open(fsq2name, 'w')
             pro_clash.get_unmapped_reads(
                 bfin, fsq1, fsq2, settings.length, settings.maxG,
-                rev=settings.reverse_complement, all_reads=settings.all_reads)
+                rev=settings.reverse_complement, all_reads=outall!=None)
         # Map the fastq files to the genome
         reads_in = []
         for fqname in (fsq1name, fsq2name):

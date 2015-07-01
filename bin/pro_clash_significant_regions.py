@@ -8,6 +8,9 @@ genomic reginos and comparing to the expected number of interactions if this
 interaction is random. The script treat the 5' end of the fragment and the
 3' end separately since we observed that sRNAs tend to be in the 3' end
 of the fragment.
+Prior to testing, fragments that are probably not a consequence of ligation are
+removed. This will be done by excluding reads that map less than 1000 bp apart
+or on the same transcript (from EcoCyc annotations)
 """
 
 import sys
@@ -40,27 +43,6 @@ def process_command_line(argv):
     parser.add_argument(
         '--ribozero', default=False, action='store_true',
         help='Remove rRNA from the list of chimeric reads.')
-    parser.add_argument(
-        '--remove_single',
-        help='Name of file with single reads mapped to the genome. This is the'
-        ' first file needed for in-vitro reads removal. The file is generated'
-        ' using the map_chimeric_fragments.py script with the -a flag.')
-    parser.add_argument(
-        '--remove_cross',
-        help='This is the second file needed for in-vitro removal. This '
-        'includes fragments that are ligation with foreign RNA. The number of'
-        ' cross RNA is divided by single, normalized, multiplied by number'
-        ' of single in this library and multiplied by expected in-vitro '
-        ' fraction of fragments.')
-    parser.add_argument(
-        '--this_single',
-        help='In order to remove in-vitro reads this file should be the -a'
-        ' parameter of map_chimeric_fragments.py of this library.')
-    parser.add_argument(
-        '--vitro_ratio', type=float, default=0.5,
-        help='Estimated fraction of in-vitro interactions among all'
-        ' interactions. This can be measured using the relative '
-        'amount of foreign RNA in the mixture and their in-vitro interactions.')
     parser.add_argument(
         '--est_utr_lens', type=int, default=100,
         help='Estimated UTRs lengths when there is not data.')
@@ -100,11 +82,11 @@ def process_command_line(argv):
     parser.add_argument(
         '--pad_seqs', type=int, default=50,
         help='When computing RNAup pad the interacting regions.')
-    parser.add_argument(
-        '--maxdist', type=int, default=1000,
-        help='Maximal distance between mates to consider as same fragment.'
-        ' Here it will be used to reduce the counts in this distance from '
-        'either regions that interact with other regions of the genome.')
+#    parser.add_argument(
+#        '--maxdist', type=int, default=1000,
+#        help='Maximal distance between mates to consider as same fragment.'
+#        ' Here it will be used to reduce the counts in this distance from '
+#        'either regions that interact with other regions of the genome.')
     parser.add_argument(
         '--seglen', type=int, default=100,
         help='Length of minimal segment of interaction.')
@@ -147,38 +129,20 @@ def main(argv=None):
             rr_pos.append([chr_dict[uid_pos[rrgene][0]]]+uid_pos[rrgene][1:])
     else:
         rr_pos = None
+    if settings.transcripts:
+        trans_dict = pro_clash.read_transcripts(settings.transcripts)
+    else:
+        trans_dict = None
     region_interactions, region_ints_as1, region_ints_as2, total_interactions=\
         pro_clash.read_reads_table(
         open(settings.reads_in), settings.seglen, rr_pos)
     sys.stderr.write("Total interactions: %d\n"%total_interactions)
 
-    # Remove in-vitro estimated counts if data given
-    if settings.remove_single and settings.remove_cross and\
-            settings.this_single:
-        _, sings_as_1, sings_as_2, tot_sing =\
-            pro_clash.read_reads_table(
-            open(settings.remove_single), settings.seglen, rr_pos)
-        _, cross_as_1, cross_as_2, tot_cross =\
-            pro_clash.read_reads_table(
-            open(settings.remove_cross), settings.seglen, rr_pos)
-        _, ts_as_1, ts_as_2, tot_ts =\
-            pro_clash.read_reads_table(
-            open(settings.this_single), settings.seglen, rr_pos)
-        # Computes the expected number of in-vitro interactions for each
-        # two interacting regions using these numbers.
-        total_interactions = pro_clash.update_exp_in_vitro(
-            region_interactions, region_ints_as1, region_ints_as2, sings_as_1,
-            sings_as_2, cross_as_1, cross_as_2, ts_as_1, ts_as_2,
-            settings.vitro_ratio)
-        sys.stderr.write("Total interactions after in-vitro removal: %d\n"%total_interactions)
-    else:
-        sys.stderr.write("No in-vitro reduction\n")
     # Now run the test for each pair of interacting regions
     found_in_interaction = defaultdict(bool)
     interacting_regions = []
     # Start with the regions with the most interactions
     pairs_num = {}
-    processed = 0
     for reg1 in list(region_interactions.keys()):
         if region_ints_as1[reg1] < settings.min_int:
             continue
@@ -191,7 +155,7 @@ def main(argv=None):
             pro_clash.minpv_regions(
             reg1, reg2, region_interactions, region_ints_as1, region_ints_as2,
             total_interactions, found_in_interaction, settings.seglen,
-            settings.maxsegs, settings.maxdist, settings.min_odds_ratio)
+            settings.maxsegs, settings.min_odds_ratio)
         pv *= len(pairs_num)
         if pv <= settings.max_pv:
             # Mark as participating

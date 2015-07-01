@@ -582,11 +582,13 @@ def write_reads_table(
             continue
         # If the two reads share at least one gene they are excluded
         write_to = outfile
+        read_type = "chimera"
         if test_concordance(
             read1_reads[rname], read2_reads[rname], maxdist,
             chrnames_bam, trans_gff=trans_gff, remove_self=remove_self):
             if write_single:
                 write_to = write_single
+                read_type = "single"
             else:
                 continue
         read1_chrn = chrnames_bam[read1_reads[rname].tid]
@@ -604,9 +606,9 @@ def write_reads_table(
             end1_pos = read1_reads[rname].pos
             end1_str = '+'
         write_to.write(
-            "%s\t%d\t%s\t%s\t%d\t%s\t%s\n"%(
+            "%s\t%d\t%s\t%s\t%d\t%s\t%s\t%s\n"%(
                 read1_chrn, end1_pos+1, end1_str, read2_chrn, end2_pos+1,
-                end2_str, rname))
+                end2_str, rname, read_type))
 
 
 def read_reads_table(reads_in, seglen, rRNAs=None):
@@ -624,7 +626,7 @@ def read_reads_table(reads_in, seglen, rRNAs=None):
     region_ints_as2 = defaultdict(int)
     total_interactions = 0
     for line in reads_in:
-        end1_chrn, end1_pos1, end1_str, end2_chrn, end2_pos1, end2_str, _ =\
+        end1_chrn, end1_pos1, end1_str, end2_chrn, end2_pos1, end2_str, _, rtype =\
             line.strip().split()
         end1_pos = int(end1_pos1)-1
         end2_pos = int(end2_pos1)-1
@@ -644,8 +646,9 @@ def read_reads_table(reads_in, seglen, rRNAs=None):
         end1_seg = (end1_pos/seglen)*seglen
         end2_seg = (end2_pos/seglen)*seglen
         total_interactions += 1
-        region_interactions[(end1_seg, end1_str, end1_chrn)]\
-            [(end2_seg, end2_str, end2_chrn)].append((end1_pos, end2_pos))
+        if rtype != "single":
+            region_interactions[(end1_seg, end1_str, end1_chrn)]\
+                [(end2_seg, end2_str, end2_chrn)].append((end1_pos, end2_pos))
         region_ints_as1[(end1_seg, end1_str, end1_chrn)] += 1
         region_ints_as2[(end2_seg, end2_str, end2_chrn)] += 1
     return (
@@ -737,7 +740,7 @@ def update_exp_in_vitro(
 
 def minpv_regions(
     reg1, reg2, r_int, t_int_as1, t_int_as2, tot_int, f_int, seglen, maxsegs,
-    maxdist, min_odds):
+    min_odds):
     """
     return the regions that have minimal p-value. Exhaustive search
     Arguments:
@@ -750,7 +753,6 @@ def minpv_regions(
     - `f_int`: interacting regions that were used
     - `seglen`: Length of segment (usually 100)
     - `maxsegs`: Maximal number of neighbouring segment to join
-    - `maxdist`: Remove interactions that are this close to each other
     - `min_odds`: Minimal odds-ratio to test
     """
     maxpv = 2
@@ -761,18 +763,6 @@ def minpv_regions(
             for i1 in range(l1+1):
                 for i2 in range(l2+1):
                     has_former = False
-                    # Reduce from the total number of interactions the
-                    # interactions near the sites because they are
-                    # excluded from the analysis
-                    region_reduce = 0
-                    from_red1 = reg1[0]-(i1*seglen)-maxdist
-                    to_red1 = reg1[0]+(l1*seglen)+maxdist
-                    for red1_r in range(from_red1, to_red1, seglen):
-                        region_reduce += t_int_as2[(red1_r, reg1[1], reg1[2])]
-                    from_red2 = reg2[0]-(i2*seglen)-maxdist
-                    to_red2 = reg2[0]+(l2*seglen)+maxdist
-                    for red2_r in range(from_red2, to_red2, seglen):
-                        region_reduce += t_int_as1[(red2_r, reg2[1], reg2[2])]
                     int_sum = 0
                     s1_sum = 0
                     s2_sum = 0
@@ -799,7 +789,7 @@ def minpv_regions(
                     a = int_sum
                     b = s1_sum - int_sum
                     c = s2_sum - int_sum
-                    d = tot_int - s1_sum - s2_sum + int_sum - region_reduce
+                    d = tot_int - s1_sum - s2_sum + int_sum
                     corr += 1
                     if b==0 or c==0:
                         odds = np.inf

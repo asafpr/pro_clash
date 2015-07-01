@@ -129,10 +129,6 @@ def main(argv=None):
             rr_pos.append([chr_dict[uid_pos[rrgene][0]]]+uid_pos[rrgene][1:])
     else:
         rr_pos = None
-    if settings.transcripts:
-        trans_dict = pro_clash.read_transcripts(settings.transcripts)
-    else:
-        trans_dict = None
     region_interactions, region_ints_as1, region_ints_as2, total_interactions=\
         pro_clash.read_reads_table(
         open(settings.reads_in), settings.seglen, rr_pos)

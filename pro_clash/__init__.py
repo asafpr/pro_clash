@@ -1021,7 +1021,7 @@ def get_names(gname, uid_names, annotations):
             cn2 = uid_names[gname[1]]['COMMON-NAME']
         except KeyError:
             cn2 = gname[1]
-        p0_name += '/%s/%s'%(cn2, gname[2])
+        p0_name += '.%s.%s'%(cn2, gname[2])
         try:
             p1_desc = annotations[cn2]
         except KeyError:
@@ -1029,7 +1029,7 @@ def get_names(gname, uid_names, annotations):
         p0_desc += ' : %s'%p1_desc
         
     elif len(gname)>=2:
-        p0_name += '/%s'%gname[1]
+        p0_name += '.%s'%gname[1]
         
     return p0_name, p0_desc
 

@@ -409,6 +409,21 @@ def get_unmapped_reads(
                 outseq = str(outseq[:length])
             ouf.write("@%s\n%s\n+\n%s\n"%(read.qname, outseq, outqual))
 
+            
+def run_dust_filter(fname, fout, prinseq_cmd, threshold):
+    """
+    Run the dust filter implemented in prinseq. Read a fastq file and write to
+    the open file in fout.
+    Arguments:
+    - `fname`: Input file name
+    - `fout`: Write output to this file
+    - `prinseq_cmd`: prinseq.pl executable
+    - `Threshold`: Above this value, reads will be ignored
+    """
+    call([prinseq_cmd, '-fastq', fname, '-lc_method', "dust", '-lc_threshold',
+          str(threshold), '-out_good', 'stdout'], stdout=fout)
+    
+
 
 def get_XA_mapping(tags, max_mm=None):
     """

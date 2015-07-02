@@ -56,6 +56,9 @@ def process_command_line(argv):
         ' from the same strand but larger than this distance they will be'
         ' considered as chimeric.')
     parser.add_argument(
+        '--dust_thr', type=float, default=10,
+        help='Threshold for dust filter implemented in prinseq. If 0 skip.')
+    parser.add_argument(
         '-d', '--dirout', default='.',
         help='Output directory, default is this directory.')
     parser.add_argument(
@@ -103,6 +106,9 @@ def process_command_line(argv):
         '--bwa_exec', default='bwa',
         help='bwa command')
     parser.add_argument(
+        '--prinseq_exec', default='prinseq.pl',
+        help='Executable of prinseq.')
+    parser.add_argument(
         '-S', '--samtools_cmd', default='samtools',
         help='Samtools executable.')
     parser.add_argument(
@@ -146,6 +152,18 @@ def main(argv=None):
                 bfin, fsq1, fsq2, settings.length, settings.maxG,
                 rev=settings.reverse_complement, all_reads=outall!=None)
         # Map the fastq files to the genome
+        if settings.dust_thr > 0:
+            flt_fsq1name = "%s/%s_ends_1_dust.fastq"%(settings.dirout, libname)
+            flt_fsq2name = "%s/%s_ends_2_dust.fastq"%(settings.dirout, libname)
+            with open(flt_fsq1name, 'w') as fout1:
+                pro_clash.run_dust_filter(
+                    fsq1name, fout1, settings.prinseq_cmd, settings.dust_thr)
+            with open(flt_fsq2name, 'w') as fout2:
+                pro_clash.run_dust_filter(
+                    fsq2name, fout2, settings.prinseq_cmd, settings.dust_thr)
+            fsq1name = flt_fsq1name
+            fsq2name = flt_fsq2name
+                
         reads_in = []
         for fqname in (fsq1name, fsq2name):
             bamheadname = fqname.rsplit('.',1)[0].rsplit('/',1)[-1]

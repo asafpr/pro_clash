@@ -50,6 +50,7 @@ region 2         K            L
 other regions    M            N
 =============  ========  =============
 
+L and M include the number of single reads as well, the statistics test if two regions interact more frequently than expected by random.
 If K is larger than expected the two regions are probably in actual interaction
 *in vivo*. The odds ratio is computed by (K/L)/(M/N) and the p-value is computed using Fisher's exact test, testing only if K is larger than expected (single-tailed test)
 

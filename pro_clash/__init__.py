@@ -345,7 +345,8 @@ def read_transcripts(trans_gff, feature='exon', identifier='gene_id'):
 
 
 def get_unmapped_reads(
-    samfile, outfile1, outfile2, length, maxG, rev=False, all_reads=False):
+    samfile, outfile1, outfile2, length, maxG, rev=False, all_reads=False,
+    dust_thr=0):
     """
     Get the list of unmapped paired reads and write the reads (mate 1 and 2) to
     the fastq files outfile1 and outfile2. The names of the reads is the same
@@ -362,6 +363,7 @@ def get_unmapped_reads(
     - `rev`: Reads are reverse complement (Livny's protocol). Has no influence
              on single-end reads
     - `all_reads`: Return all reads, including mapped ones
+    - `dust_thr`: DUST filter threshold. If=0, not applied.
     """
     for read in samfile.fetch(until_eof=True):
         if (not read.is_paired) and (read.is_unmapped or all_reads):
@@ -407,7 +409,31 @@ def get_unmapped_reads(
                 if outseq.count('G') >= int(maxG*length):
                     continue
                 outseq = str(outseq[:length])
-            ouf.write("@%s\n%s\n+\n%s\n"%(read.qname, outseq, outqual))
+            # test if read passes DUST filter
+            if pass_dust_filter(outseq, dust_thr):
+                ouf.write("@%s\n%s\n+\n%s\n"%(read.qname, outseq, outqual))
+
+
+def pass_dust_filter(seq, thr):
+    """
+    Run dust filter and return True of False. The filter is applied as
+    described in: ftp://ftp.ncbi.nlm.nih.gov/pub/agarwala/windowmasker/windowmasker_suppl.pdf
+    The score is normalized to the length of the sequence (-3) and multiplied
+    by 10 as the formula says 
+    Arguments:
+    - `seq`: The sequence
+    - `thr`: The threshold
+    """
+    if len(seq) <= 3 or thr == 0:
+        return True
+    counts = defaultdict(int)
+    for i in range(len(seq)-2):
+        counts[seq[i:i+3]] += 1
+    cscore = 0
+    for c in counts.values():
+        cscore += c * (c-1) * 0.5
+#    sys.stderr.write("%g\n"%(cscore/(len(seq)-3)*10))
+    return cscore/(len(seq)-3) * 10 <= thr
 
             
 def run_dust_filter(fname, fout, prinseq_cmd, threshold):

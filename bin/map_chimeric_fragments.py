@@ -67,7 +67,7 @@ def process_command_line(argv):
         ' not chimeric to the file specified here e.g. '
         '-a single_fragments_mapping.txt. This will serve for normalization.')
     parser.add_argument(
-        '-A', '--add_all_reads', default=False, action='store_true',
+        '-A', '--add_all_reads', default=True, action='store_false',
         help='Map all reads in the BAM file, write all the fragments that are'
         ' not chimeric to the output file (stdout)')
     parser.add_argument(
@@ -106,7 +106,7 @@ def process_command_line(argv):
         '--bwa_exec', default='bwa',
         help='bwa command')
     parser.add_argument(
-        '--prinseq_exec', default='prinseq.pl',
+        '--prinseq_exec', default='prinseq-lite.pl',
         help='Executable of prinseq.')
     parser.add_argument(
         '-S', '--samtools_cmd', default='samtools',
@@ -150,21 +150,11 @@ def main(argv=None):
             fsq2 = open(fsq2name, 'w')
             pro_clash.get_unmapped_reads(
                 bfin, fsq1, fsq2, settings.length, settings.maxG,
-                rev=settings.reverse_complement, all_reads=outall!=None)
-        # Map the fastq files to the genome
-        if settings.dust_thr > 0:
-            flt_fsq1name = "%s/%s_ends_1_dust.fastq"%(settings.dirout, libname)
-            flt_fsq2name = "%s/%s_ends_2_dust.fastq"%(settings.dirout, libname)
-            with open(flt_fsq1name, 'w') as fout1:
-                pro_clash.run_dust_filter(
-                    fsq1name, fout1, settings.prinseq_cmd, settings.dust_thr)
-            with open(flt_fsq2name, 'w') as fout2:
-                pro_clash.run_dust_filter(
-                    fsq2name, fout2, settings.prinseq_cmd, settings.dust_thr)
-            fsq1name = flt_fsq1name
-            fsq2name = flt_fsq2name
-                
+                rev=settings.reverse_complement, all_reads=outall!=None,
+                dust_thr=settings.dust_thr)
+            # Apply dust filter
         reads_in = []
+        # Map the fastq files to the genome
         for fqname in (fsq1name, fsq2name):
             bamheadname = fqname.rsplit('.',1)[0].rsplit('/',1)[-1]
             if settings.skip_mapping:

@@ -57,7 +57,7 @@ def process_command_line(argv):
         ' considered as chimeric.')
     parser.add_argument(
         '--dust_thr', type=float, default=10,
-        help='Threshold for dust filter implemented in prinseq. If 0 skip.')
+        help='Threshold for dust filter. If 0 skip.')
     parser.add_argument(
         '-d', '--dirout', default='.',
         help='Output directory, default is this directory.')

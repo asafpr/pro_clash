@@ -24,11 +24,13 @@ After we have a bam file for each library (either generated using map_single_fra
 
 The search is done using the ends of the fragments that weren't properly mapped to the genome in the bam file. In the case of paired-end sequencing the first 25 nucleotides (or as specified by -l argument) are taken. In the case of single-end sequencing the first 25 and last 25 of each read are taken, make sure the two regions don't overlap or you won't get any results.
 
+All the reads in the bam files are mapped to the genome and written to the results file unless -a filename or -A are defined. The single fragments are used for the statistical test and will be marked as single so the interactions will be tested according to them but they won't be tested using Fisher's exact test.
+
 After the two ends are extracted they are being mapped to the genome using bwa and screened again to see if they can be on the same transcript. In order to do so we allow a relatively large number of mismatches (3 by default, set with --max_mismatches) and test if any combination of the positions each read was mapped to can result from the same transcript. We remove pairs of reads that are 1000 nt apart and map in opposite directions either as expected or in reverse order (reads which result from circular RNAs, omit this option using --keep_circular). If the -t argument is given, the pairs are tested to see if they might reside from the same transcript even if they're distance is larger than 1000 nts. This option is very useful in screening rRNAs that sometimes come from long transcripts.
 
 After reads that might be concordant are removed, the lowest position on the chromosome of each read is collected if the read is mapped with at most 1 mismatch (set with --allowed_mismatches).
 
-For each pair of reads the output file will contain a line with the coordinates of the first read, the second read and the read name. All the bam files that were given as input will be joined to the same output file, they can be further separated using the read names. Alternatively, you can run each bam file separately and cat all the reads files.
+For each pair of reads the output file will contain a line with the coordinates of the first read, the second read, the read name and the work chimera/single according to the nature of the fragment. All the bam files that were given as input will be joined to the same output file, they can be further separated using the read names. Alternatively, you can run each bam file separately and cat all the reads files.
 
 Run with::
 

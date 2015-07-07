@@ -37,6 +37,11 @@ def process_command_line(argv):
         '-2', '--only_second', action='store_true', default=False,
         help='Count only the second in fragment.')
     parser.add_argument(
+        '-s', '--singles', action='store_true', default=False,
+        help='Count the fragments marked as "single", by default count only'
+        ' the chimeric ones. This option forces -1 otherwise the counts will'
+        ' be doubled.')
+    parser.add_argument(
         '-q', '--quiet', action='store_true', default=False,
         help="Don't print header and antisense/IGR statistics.")
     parser.add_argument(
@@ -56,7 +61,7 @@ def process_command_line(argv):
     return settings
 def count_features(
     features, infile, overlap, length=25, ignore_first=False,
-    ignore_second=False):
+    ignore_second=False, count_singles=False):
     """
     Count the number of reads for each feature
     Arguments:
@@ -66,6 +71,7 @@ def count_features(
     - `length`: Read length. added to first read and reduced from second
     - `ignore_first`: Count only from the second end
     - `ignore_second`: Count only from the first end
+    - `count_singles`: Count the single fragments, if False count only chimera
     """
     def update_counter(rfrom, rto, rstr, chrname,  fcounts):
         """
@@ -104,9 +110,12 @@ def count_features(
     fcounts = defaultdict(int)
     for line in infile:
         try:
-            r1_chrn, r1, str1, r2_chrn, r2, str2 = line.strip().split()[:6]
+            r1_chrn, r1, str1, r2_chrn, r2, str2, _, ftype =\
+                line.strip().split()
         except ValueError:
             sys.stderr.write('%s\t%s'%(infile.name, line))
+        if count_singles != (ftype=='single'):
+            continue
         r1i = int(r1)-1 #0-based
         r2i = int(r2)-1
         r1_to = r1i+length
@@ -132,13 +141,16 @@ def main(argv=None):
         return 1
     lib_order = []
     all_counts = {}
+    if settings.singles:
+        settings.only_first = True
+        settings.only_second = False
     for r1_name in pro_clash.flat_list(settings.reads_files):
         sys.stderr.write('%s\n'%str(r1_name))
         lib_order.append(r1_name)
         all_counts[r1_name] = count_features(
             pos_feat_list, open(r1_name), settings.overlap, length=25,
             ignore_first=settings.only_second,
-            ignore_second=settings.only_first)
+            ignore_second=settings.only_first, count_singles=settings.singles)
     outt = csv.writer(sys.stdout, delimiter='\t')
     if not settings.quiet:
         outt.writerow(['Gene name'] + lib_order)

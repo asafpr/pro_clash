@@ -22,9 +22,11 @@ Chimera mapping
 ---------------
 After we have a bam file for each library (either generated using map_single_fragments.py or any other mapper) we can look for chimeric reads.
 
-The search is done using the ends of the fragments that weren't properly mapped to the genome in the bam file. In the case of paired-end sequencing the first 25 nucleotides (or as specified by -l argument) are taken. In the case of single-end sequencing the first 25 and last 25 of each read are taken, make sure the two regions don't overlap or you won't get any results.
+The search is done using the ends of all the fragments in the bam file. In the case of paired-end sequencing the first 25 nucleotides (or as specified by -l argument) are taken. In the case of single-end sequencing the first 25 and last 25 of each read are taken, make sure the two regions don't overlap or you won't get any results.
 
-All the reads in the bam files are mapped to the genome and written to the results file unless -a filename or -A are defined. The single fragments are used for the statistical test and will be marked as single so the interactions will be tested according to them but they won't be tested using Fisher's exact test.
+All the reads in the bam files are mapped to the genome and written to the results file unless -a filename or -A are defined, in the first case the single fragments will be written to the specified file. The single fragments are used for the statistical test and will be marked as single so the interactions will be tested according to them but they won't be tested using Fisher's exact test.
+
+The 25 nt long sequences are screened using dust filter to remove reads with low complexity. The default threshold for the dust filter is 10, it can be changed using the --dust_thr parameter, when 0 the filter won't be used.
 
 After the two ends are extracted they are being mapped to the genome using bwa and screened again to see if they can be on the same transcript. In order to do so we allow a relatively large number of mismatches (3 by default, set with --max_mismatches) and test if any combination of the positions each read was mapped to can result from the same transcript. We remove pairs of reads that are 1000 nt apart and map in opposite directions either as expected or in reverse order (reads which result from circular RNAs, omit this option using --keep_circular). If the -t argument is given, the pairs are tested to see if they might reside from the same transcript even if they're distance is larger than 1000 nts. This option is very useful in screening rRNAs that sometimes come from long transcripts.
 

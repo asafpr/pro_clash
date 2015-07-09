@@ -44,6 +44,14 @@ def process_command_line(argv):
         '--ribozero', default=False, action='store_true',
         help='Remove rRNA from the list of chimeric reads.')
     parser.add_argument(
+        '--all_interactions', default=False, action='store_true',
+        help='Skip all statistical tests and report all the interactions.')
+    parser.add_argument(
+        '--only_singles', default=False, action='store_true',
+        help='Return only the single interactions. This should be used with'
+        ' --all_interactions to count the number of single reads in the '
+        'library.')
+    parser.add_argument(
         '--est_utr_lens', type=int, default=100,
         help='Estimated UTRs lengths when there is not data.')
     parser.add_argument(
@@ -131,40 +139,56 @@ def main(argv=None):
         rr_pos = None
     region_interactions, region_ints_as1, region_ints_as2, total_interactions=\
         pro_clash.read_reads_table(
-        open(settings.reads_in), settings.seglen, rr_pos)
+        open(settings.reads_in), settings.seglen, rr_pos, settings.only_singles)
     sys.stderr.write("Total interactions: %d\n"%total_interactions)
 
-    # Now run the test for each pair of interacting regions
-    found_in_interaction = defaultdict(bool)
-    interacting_regions = []
-    # Start with the regions with the most interactions
-    pairs_num = {}
-    for reg1 in list(region_interactions.keys()):
-        if region_ints_as1[reg1] < settings.min_int:
-            continue
-        for reg2 in list(region_interactions[reg1].keys()):
-            if len(region_interactions[reg1][reg2]) >= settings.min_int:
-                pairs_num[(reg1, reg2)] = len(region_interactions[reg1][reg2])
-    # Iterate the list of regions from the pairs with many interactions down
-    for (reg1, reg2) in sorted(pairs_num, key=pairs_num.get, reverse=True):
-        pv, ints, odds, r1_from, r1_to, r2_from, r2_to, mat_b, mat_c, mat_d=\
-            pro_clash.minpv_regions(
-            reg1, reg2, region_interactions, region_ints_as1, region_ints_as2,
-            total_interactions, found_in_interaction, settings.seglen,
-            settings.maxsegs, settings.min_odds_ratio)
-        pv *= len(pairs_num)
-        if pv <= settings.max_pv:
-            # Mark as participating
-            for r1 in range(r1_from, r1_to, settings.seglen):
-                for r2 in range(r2_from, r2_to, settings.seglen):
-                    found_in_interaction[
-                        (r1, reg1[1], reg1[2], r2, reg2[1], reg2[2])] = True
-            # Report this interaction
-            interacting_regions.append(
-                (pv, ints, odds, r1_from, r1_to, reg1[1], reg1[2],  r2_from,
-                 r2_to, reg2[1], reg2[2],  mat_b, mat_c, mat_d))
+    # If all interactions are desired, skip the tests and report all
+    if settings.all_interactions:
+        interacting_regions = []
+        for reg1, r1data in region_interactions.items():
+            for reg2, clist in r1data.items():
+                interacting_regions.append(
+                    (1, len(clist), 0, reg1[0], reg1[0]+settings.seglen,
+                     reg1[1], reg1[2], reg2[0], reg2[0]+settings.seglen,
+                     reg2[1], reg2[2], 0, 0, 0))
+    else:
+    
+        # Now run the test for each pair of interacting regions
+        found_in_interaction = defaultdict(bool)
+        interacting_regions = []
+        # Start with the regions with the most interactions
+        pairs_num = {}
+        for reg1 in list(region_interactions.keys()):
+            if region_ints_as1[reg1] < settings.min_int:
+                continue
+            for reg2 in list(region_interactions[reg1].keys()):
+                if len(region_interactions[reg1][reg2]) >= settings.min_int:
+                    pairs_num[(reg1, reg2)] = len(region_interactions[reg1][reg2])
+        # Iterate the list of regions from the pairs with many interactions down
+        for (reg1, reg2) in sorted(pairs_num, key=pairs_num.get, reverse=True):
+            pv, ints, odds, r1_from, r1_to, r2_from, r2_to, mat_b, mat_c,mat_d=\
+                pro_clash.minpv_regions(
+                reg1, reg2, region_interactions, region_ints_as1,
+                region_ints_as2, total_interactions, found_in_interaction,
+                settings.seglen, settings.maxsegs, settings.min_odds_ratio)
+            pv *= len(pairs_num)
+            if pv <= settings.max_pv:
+                # Mark as participating
+                for r1 in range(r1_from, r1_to, settings.seglen):
+                    for r2 in range(r2_from, r2_to, settings.seglen):
+                        found_in_interaction[
+                            (r1, reg1[1], reg1[2], r2, reg2[1], reg2[2])] = True
+                # Report this interaction
+                interacting_regions.append(
+                    (pv, ints, odds, r1_from, r1_to, reg1[1], reg1[2],  r2_from,
+                     r2_to, reg2[1], reg2[2],  mat_b, mat_c, mat_d))
     # Read the additional data to decorate the results with
-    pro_clash.report_interactions(region_interactions, sys.stdout, interacting_regions, settings.seglen, settings.ec_dir, settings.EC_chrlist, settings.refseq_dir, settings.targets_file, settings.rep_table, settings.single_counts, settings.shuffles, settings.RNAup_cmd, settings.servers, settings.length, settings.est_utr_lens, settings.pad_seqs)
+    pro_clash.report_interactions(
+        region_interactions, sys.stdout, interacting_regions, settings.seglen,
+        settings.ec_dir, settings.EC_chrlist, settings.refseq_dir,
+        settings.targets_file, settings.rep_table, settings.single_counts,
+        settings.shuffles, settings.RNAup_cmd, settings.servers,
+        settings.length, settings.est_utr_lens, settings.pad_seqs)
     # application code here, like:
     # run(settings, args)
     return 0        # success

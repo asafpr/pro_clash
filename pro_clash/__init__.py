@@ -652,7 +652,7 @@ def write_reads_table(
                 end2_str, rname, read_type))
 
 
-def read_reads_table(reads_in, seglen, rRNAs=None):
+def read_reads_table(reads_in, seglen, rRNAs=None, only_single=False):
     """
     Read a reads table and count the number of times each pair of segments
     appears in a chimeric fragment.
@@ -687,7 +687,7 @@ def read_reads_table(reads_in, seglen, rRNAs=None):
         end1_seg = (end1_pos/seglen)*seglen
         end2_seg = (end2_pos/seglen)*seglen
         total_interactions += 1
-        if rtype != "single":
+        if (rtype != "single") != only_single:
             region_interactions[(end1_seg, end1_str, end1_chrn)]\
                 [(end2_seg, end2_str, end2_chrn)].append((end1_pos, end2_pos))
         region_ints_as1[(end1_seg, end1_str, end1_chrn)] += 1

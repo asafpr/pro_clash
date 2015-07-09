@@ -5,11 +5,7 @@ Given already mapped fusions using the reads file (format:
 gene1 gene2 position1 strand1 position2 strand2 read_name)
 Use the original BAM to plot the ends of the reads as BED file to be presented
 by the genome browser.
-Color code:
-255,0,0 (red): negative strand first part
-255,0,255 (magenta): negative strand second part
-0,0,255 (blue): positive strand first part
-0,255,255 (cyan): positive strand second part
+Color code as specified in the parametrs
 """
 
 import sys
@@ -60,7 +56,18 @@ def process_command_line(argv):
         '-e', '--gene_name',
         help='Print reads involve only this gene (EcoCyc ID), '
         'applies only with -s')
-
+    parser.add_argument(
+        '--pos_first', default='255,0,0',
+        help='Color of first part, positive strand.')
+    parser.add_argument(
+        '--pos_second', default='51,102,255',
+        help='Color of second part, positive strand.')
+    parser.add_argument(
+        '--rev_first', default='255,0,0',
+        help='Color of first part, reverse strand.')
+    parser.add_argument(
+        '--rev_second', default='51,102,255',
+        help='Color of second part, reverse strand.')
     parser.add_argument(
         '--EC_chrlist', default='COLI-K12,chr',
         help='A comma separated dictionary of chromosome names from the EcoCyc'
@@ -234,6 +241,9 @@ def main(argv=None):
             settings.summary, chr_dict, gname=settings.gene_name)
 
     for line in csv.reader(open(settings.list_reads), delimiter='\t'):
+        # skip single
+        if len(line) > 7 and line[7]=="single":
+            continue
         if settings.summary:
             if (int(line[4])-1, line[5], line[3]) not in\
                     sig_reads[(int(line[1])-1, line[2], line[0])]:
@@ -269,25 +279,25 @@ def main(argv=None):
             gto = min(gsize[read_5ps[rname][2]], read_5ps[rname][0]+side_5p_len)
             outer.writerow([
                     read_5ps[rname][2], gfrom, gto, "%s_5p"%rname, 0, '+',
-                    gfrom, gto, "0,0,255"])
+                    gfrom, gto, settings.pos_first])
         elif read_5ps[rname][1] == '-':
             gfrom = max(0, read_5ps[rname][0]-side_5p_len+1)
             gto = min(gsize[read_5ps[rname][2]], read_5ps[rname][0]+1)
             outer.writerow([
                     read_5ps[rname][2], gfrom, gto, "%s_5p"%rname, 0, '-',
-                    gfrom, gto,"255,0,0"])
+                    gfrom, gto,settings.rev_first])
         if read_3ps[rname][1] == '+':
             gfrom = max(0, read_3ps[rname][0]-side_3p_len+1)
             gto = min(gsize[read_3ps[rname][2]], read_3ps[rname][0]+1)
             outer.writerow([
                     read_3ps[rname][2], gfrom, gto,"%s_3p"%rname, 0, '+',
-                    gfrom, gto,"0,255,255"])
+                    gfrom, gto, settings.pos_second])
         elif read_3ps[rname][1] == '-':
             gfrom = max(0, read_3ps[rname][0])
             gto = min(gsize[read_3ps[rname][2]], read_3ps[rname][0]+side_3p_len)
             outer.writerow([
                     read_3ps[rname][2], gfrom, gto, "%s_3p"%rname, 0, '-',
-                    gfrom, gto,"255,0,255"])
+                    gfrom, gto, settings.rev_second])
     return 0        # success
 
 if __name__ == '__main__':

@@ -5,7 +5,7 @@ def readme():
         return f.read()
     
 setup(name='pro_clash',
-      version='0.33',
+      version='0.36',
       description='Processing PRO-CLASH experiments results',
       long_description=readme(),
       classifiers=[
@@ -22,7 +22,8 @@ setup(name='pro_clash',
         'bin/plot_circos_plot.py',
         'bin/generate_BED_file_of_endpoints.py',
         'bin/count_chimeric_reads_per_gene.py',
-        'bin/get_sequences_for_meme.py'],
+        'bin/get_sequences_for_meme.py',
+        'bin/plot_regions_interactions.py'],
       url='http://github.com/asafpr/pro_clash',
       author='Asaf Peer',
       author_email='asafpr@gmail.com',

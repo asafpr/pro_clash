@@ -134,7 +134,11 @@ def main(argv=None):
                 settings.EC_chrlist.split(',')[1::2],
                 settings.EC_chrlist.split(',')[0::2]))
         for rrgene in rRNAs:
-            rr_pos.append([chr_dict[uid_pos[rrgene][0]]]+uid_pos[rrgene][1:])
+            # Pad the position of the rRNA gene with the alignment lenght
+            rr_pos.append([chr_dict[uid_pos[rrgene][0]]] +\
+                              [uid_pos[rrgene][1]-settings.length] +\
+                              [uid_pos[rrgene][2]+settings.length] +\
+                              [uid_pos[rrgene][3]])
     else:
         rr_pos = None
     region_interactions, region_ints_as1, region_ints_as2, total_interactions=\

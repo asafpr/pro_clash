@@ -89,6 +89,8 @@ def generate_transcripts_file(
         read_genes_data(ec_dir)
     tu_genes = defaultdict(list)
     for gene, tus in uid_tudata.items():
+        if not tus:
+            tu_genes[gene] = [gene]
         for tu in tus:
             tu_genes[tu].append(gene)
     tu_boundaries = {}

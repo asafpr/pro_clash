@@ -15,6 +15,7 @@ from pylab import *
 from mpl_toolkits.axes_grid1 import ImageGrid
 from collections import defaultdict
 import csv
+from scipy.stats import spearmanr
 
 def process_command_line(argv):
     """
@@ -92,7 +93,8 @@ def get_regions_counts(fname, seglen):
 
 def plot_scatter(chimera, singles, chisum, lorder, figname):
     """
-    Plot scatter plots of all against all 
+    Plot scatter plots of all against all
+    Return the correlation coefficients of all against all
     Arguments:
     - `chimera`: A dictionary of A double dictionaries of counts of interactions
     - `singles`: A dictionary of dictionaries with singles counts
@@ -120,8 +122,9 @@ def plot_scatter(chimera, singles, chisum, lorder, figname):
         grd[i*lln + j].set_ylabel(l1)
         grd[i*lln + j].set_xlabel(l2)
 #        tight_layout()
-
+        return spearmanr(xvec, yvec)
     lln = len(lorder)
+    corrs = zeros((lln, lln))
     fig = figure(1, (8, 8), 300)
     rcParams.update({'font.size': 8})
 #    f, axarr = subplots(lln, lln, sharex=True, sharey=True)
@@ -133,15 +136,20 @@ def plot_scatter(chimera, singles, chisum, lorder, figname):
     for i, l1 in enumerate(lorder):
         for j, l2 in enumerate(lorder):
             if i>j: # Print singles
-                scatit(singles, singles, grid, i, j, l1, l2, lln)
+                corrs[i, j] = scatit(
+                    singles, singles, grid, i, j, l1, l2, lln)[0]
             elif i==j:
-                pass
-                scatit(singles, chisum, grid, i, j, l1, l2, lln)
+                corrs[i, j] =scatit(singles, chisum, grid, i, j, l1, l2, lln)[0]
             else:
-                scatit(chimera, chimera, grid, i, j, l1, l2, lln)
+                corrs[i, j] = scatit(
+                    chimera, chimera, grid, i, j, l1, l2, lln)[0]
             xlabel(l1)
             ylabel(l2)
     savefig(figname)
+    return corrs
+
+
+    
 
 
 
@@ -158,9 +166,14 @@ def main(argv=None):
             lib_counts[lname] = get_regions_counts(fname, settings.seglen)
             lib_singles[lname] = get_singles_counts(singname, settings.seglen)
             lib_counts_sum[lname] = get_singles_counts(fname, settings.seglen)
-    plot_scatter(
+    corrs = plot_scatter(
         lib_counts, lib_singles, lib_counts_sum, libnames,
         "%s_scatters.tif"%settings.output_head)
+    # Plot the heatmap of the correlations
+    figure()
+    pcolor(corrs)
+    colorbar()
+    savefig("%s_heatmap.tif"%settings.output_head)
     return 0        # success
 
 if __name__ == '__main__':

@@ -42,7 +42,9 @@ def process_command_line(argv):
         '-l', '--seglen', type=int, default=100,
         help='Length of segment for binning, need to be the same as used to '
         'generate the summary files.')
-
+    parser.add_argument(
+        '-c', '--counts', type=int, default=5,
+        help='Minimal number of reads to include in the plot.')
     settings = parser.parse_args(argv)
 
     return settings
@@ -91,7 +93,7 @@ def get_regions_counts(fname, seglen):
     return counts
 
 
-def plot_scatter(chimera, singles, chisum, lorder, figname):
+def plot_scatter(chimera, singles, chisum, lorder, figname, mincount):
     """
     Plot scatter plots of all against all
     Return the correlation coefficients of all against all
@@ -110,19 +112,22 @@ def plot_scatter(chimera, singles, chisum, lorder, figname):
         xvec = []
         yvec = []
         for k in lkeys:
-            xvec.append(dname[l1][k])
-            yvec.append(dname2[l2][k])
-        grd[i*lln + j].plot(xvec, yvec, '.', alpha=0.2)
-        grd[i*lln + j].set_xlim([1, 10e8])
-        grd[i*lln + j].set_ylim([1, 10e8])
+            if dname[l1][k] > mincount and dname2[l2][k] > mincount:
+                xvec.append(dname[l1][k]+1)
+                yvec.append(dname2[l2][k]+1)
+        spr = spearmanr(xvec, yvec)
+        grd[i*lln + j].hexbin(xvec, yvec, xscale = 'log', yscale = 'log', bins='log', mincnt=1, gridsize=(50,50))#plot(xvec, yvec, '.', alpha=0.2)
+        grd[i*lln + j].text(10, 10e3, "r=%.2f p=%.2g"%(spr[0], spr[1]), size=6)
+        grd[i*lln + j].set_xlim([-10, 10e5])
+        grd[i*lln + j].set_ylim([-10, 10e5])
         grd[i*lln + j].set_yscale('log')
         grd[i*lln + j].set_xscale('log')
-        grd[i*lln + j].set_xticks([10e0, 10e2, 10e4, 10e6, 10e8])
-        grd[i*lln + j].set_yticks([10e0, 10e2, 10e4, 10e6, 10e8])
+        grd[i*lln + j].set_xticks([10e0, 10e2, 10e4])
+        grd[i*lln + j].set_yticks([10e0, 10e2, 10e4])
         grd[i*lln + j].set_ylabel(l1)
         grd[i*lln + j].set_xlabel(l2)
 #        tight_layout()
-        return spearmanr(xvec, yvec)
+        return spr
     lln = len(lorder)
     corrs = zeros((lln, lln))
     fig = figure(1, (8, 8), 300)
@@ -168,7 +173,7 @@ def main(argv=None):
             lib_counts_sum[lname] = get_singles_counts(fname, settings.seglen)
     corrs = plot_scatter(
         lib_counts, lib_singles, lib_counts_sum, libnames,
-        "%s_scatters.tif"%settings.output_head)
+        "%s_scatters.tif"%settings.output_head, settings.counts)
     # Plot the heatmap of the correlations
     figure()
     pcolor(corrs[::-1])

@@ -130,7 +130,7 @@ def plot_scatter(chimera, singles, chisum, lorder, figname):
 #    f, axarr = subplots(lln, lln, sharex=True, sharey=True)
     grid = ImageGrid(fig, 111, # similar to subplot(111)
                      nrows_ncols = (lln, lln), # creates 2x2 grid of axes
-                     axes_pad=0.2, # pad between axes in inch.
+                     axes_pad=0.1, # pad between axes in inch.
                      aspect=True
                      )            
     for i, l1 in enumerate(lorder):
@@ -171,7 +171,9 @@ def main(argv=None):
         "%s_scatters.tif"%settings.output_head)
     # Plot the heatmap of the correlations
     figure()
-    pcolor(corrs)
+    pcolor(corrs[::-1])
+    xticks(arange(len(libnames))+0.5, libnames)
+    yticks(arange(len(libnames))+0.5, libnames[::-1])
     colorbar()
     savefig("%s_heatmap.tif"%settings.output_head)
     return 0        # success

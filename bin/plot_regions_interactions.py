@@ -108,7 +108,7 @@ def plot_scatter(chimera, singles, chisum, lorder, figname, mincount):
         """
         scatterplot the specific plot
         """
-        lkeys = set(dname[l1].keys()) | set(dname2[l2].keys())
+        lkeys = set(dname[l1].keys()) & set(dname2[l2].keys())
         xvec = []
         yvec = []
         for k in lkeys:
@@ -117,15 +117,16 @@ def plot_scatter(chimera, singles, chisum, lorder, figname, mincount):
                 yvec.append(dname2[l2][k]+1)
         spr = spearmanr(xvec, yvec)
         grd[i*lln + j].hexbin(xvec, yvec, xscale = 'log', yscale = 'log', bins='log', mincnt=1, gridsize=(50,50))#plot(xvec, yvec, '.', alpha=0.2)
-        grd[i*lln + j].text(10, 10e3, "r=%.2f p=%.2g"%(spr[0], spr[1]), size=6)
+#        grd[i*lln + j].text(10, 10e3, "r=%.2f p=%.2g"%(spr[0], spr[1]), size=6)
         grd[i*lln + j].set_xlim([-10, 10e5])
         grd[i*lln + j].set_ylim([-10, 10e5])
         grd[i*lln + j].set_yscale('log')
         grd[i*lln + j].set_xscale('log')
         grd[i*lln + j].set_xticks([10e0, 10e2, 10e4])
+#        grd[i*lln + j].set_xticklabels([k[0] for k in grd[i*lln + j].get_xticklabels()], rotation=45)
         grd[i*lln + j].set_yticks([10e0, 10e2, 10e4])
         grd[i*lln + j].set_ylabel(l1)
-        grd[i*lln + j].set_xlabel(l2)
+        grd[i*lln + j].set_xlabel(l2, rotation=45)
 #        tight_layout()
         return spr
     lln = len(lorder)
@@ -150,6 +151,9 @@ def plot_scatter(chimera, singles, chisum, lorder, figname, mincount):
                     chimera, chimera, grid, i, j, l1, l2, lln)[0]
             xlabel(l1)
             ylabel(l2)
+    rcParams.update({'font.size': 6})
+    for ax in fig.get_axes():
+        ax.tick_params(which='minor', direction='out')
     savefig(figname)
     return corrs
 
@@ -173,14 +177,14 @@ def main(argv=None):
             lib_counts_sum[lname] = get_singles_counts(fname, settings.seglen)
     corrs = plot_scatter(
         lib_counts, lib_singles, lib_counts_sum, libnames,
-        "%s_scatters.tif"%settings.output_head, settings.counts)
+        "%s_scatters.eps"%settings.output_head, settings.counts)
     # Plot the heatmap of the correlations
     figure()
-    pcolor(corrs[::-1])
+    pcolor(corrs[::-1], vmin=0, vmax=1, cmap=get_cmap('Reds'))
     xticks(arange(len(libnames))+0.5, libnames)
     yticks(arange(len(libnames))+0.5, libnames[::-1])
     colorbar()
-    savefig("%s_heatmap.tif"%settings.output_head)
+    savefig("%s_heatmap.eps"%settings.output_head)
     return 0        # success
 
 if __name__ == '__main__':

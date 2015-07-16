@@ -116,7 +116,10 @@ def plot_scatter(chimera, singles, chisum, lorder, figname, mincount):
                 xvec.append(dname[l1][k]+1)
                 yvec.append(dname2[l2][k]+1)
         spr = spearmanr(xvec, yvec)
-        grd[i*lln + j].hexbin(xvec, yvec, xscale = 'log', yscale = 'log', bins='log', mincnt=1, gridsize=(50,50))#plot(xvec, yvec, '.', alpha=0.2)
+        im = grd[i*lln + j].hexbin(
+            xvec, yvec, xscale = 'log', yscale = 'log', bins='log', mincnt=1,
+            gridsize=(50,50))
+#        grd.cbar_axes[i*lln+j].colorbar(im)
 #        grd[i*lln + j].text(10, 10e3, "r=%.2f p=%.2g"%(spr[0], spr[1]), size=6)
         grd[i*lln + j].set_xlim([-10, 10e5])
         grd[i*lln + j].set_ylim([-10, 10e5])
@@ -137,7 +140,8 @@ def plot_scatter(chimera, singles, chisum, lorder, figname, mincount):
     grid = ImageGrid(fig, 111, # similar to subplot(111)
                      nrows_ncols = (lln, lln), # creates 2x2 grid of axes
                      axes_pad=0.1, # pad between axes in inch.
-                     aspect=True
+                     aspect=True,
+#                     cbar_mode="each"
                      )            
     for i, l1 in enumerate(lorder):
         for j, l2 in enumerate(lorder):
@@ -177,14 +181,16 @@ def main(argv=None):
             lib_counts_sum[lname] = get_singles_counts(fname, settings.seglen)
     corrs = plot_scatter(
         lib_counts, lib_singles, lib_counts_sum, libnames,
-        "%s_scatters.eps"%settings.output_head, settings.counts)
+        "%s_scatters.tif"%settings.output_head, settings.counts, dpi=300)
     # Plot the heatmap of the correlations
-    figure()
+    fig = figure()
+    ax = fig.add_subplot(111)
     pcolor(corrs[::-1], vmin=0, vmax=1, cmap=get_cmap('Reds'))
     xticks(arange(len(libnames))+0.5, libnames)
+    ax.set_xticklabels(libnames, rotation=45)
     yticks(arange(len(libnames))+0.5, libnames[::-1])
     colorbar()
-    savefig("%s_heatmap.eps"%settings.output_head)
+    savefig("%s_heatmap.tif"%settings.output_head, dpi=300)
     return 0        # success
 
 if __name__ == '__main__':

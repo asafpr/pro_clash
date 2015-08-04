@@ -148,7 +148,7 @@ def main(argv=None):
         if not settings.skip_mapping:
             fsq1 = open(fsq1name, 'w')
             fsq2 = open(fsq2name, 'w')
-            pro_clash.get_unmapped_reads(
+            single_mapped = pro_clash.get_unmapped_reads(
                 bfin, fsq1, fsq2, settings.length, settings.maxG,
                 rev=settings.reverse_complement, all_reads=outall!=None,
                 dust_thr=settings.dust_thr)
@@ -172,7 +172,7 @@ def main(argv=None):
         pro_clash.write_reads_table(
             sys.stdout, reads_in[0], reads_in[1], bfin.references,
             settings.distance, not settings.keep_circular,
-            trans_dict, write_single=outall)
+            trans_dict, write_single=outall, single_mapped=single_mapped)
     return 0        # success
 
 if __name__ == '__main__':

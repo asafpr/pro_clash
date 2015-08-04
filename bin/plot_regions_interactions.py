@@ -49,7 +49,7 @@ def process_command_line(argv):
 
     return settings
 
-def get_singles_counts(sname, seglen):
+def get_singles_counts(sname, seglen, mincounts):
     """
     Count the number of single reads in each region, count each row twice
     one as RNA1 and once as RNA2
@@ -61,17 +61,20 @@ def get_singles_counts(sname, seglen):
     with open(sname) as fin:
         infile = csv.DictReader(fin, delimiter='\t')
         for line in infile:
+            ints = int(line['interactions'])
+            if ints < mincounts:
+                continue
             r1_reg = (
                 line['RNA1 chromosome'],int(line['RNA1 from'])/seglen*seglen,
                 line['RNA1 strand'])
             r2_reg = (
                 line['RNA2 chromosome'],int(line['RNA2 from'])/seglen*seglen,
                 line['RNA2 strand'])
-            counts[r1_reg] += int(line['interactions'])
-            counts[r1_reg] += int(line['interactions'])
+            counts[r1_reg] += ints
+            counts[r2_reg] += ints
     return counts
 
-def get_regions_counts(fname, seglen):
+def get_regions_counts(fname, seglen, mincounts):
     """
     Return a double dictionary with the number of reads for each pair of
     regions
@@ -84,11 +87,14 @@ def get_regions_counts(fname, seglen):
     with open(fname) as fin:
         infile = csv.DictReader(fin, delimiter='\t')
         for line in infile:
+            if int(line['interactions']) < mincounts:
+                continue
             t_reg = (
                 line['RNA1 chromosome'],int(line['RNA1 from'])/seglen*seglen,
                 line['RNA1 strand'], 
                 line['RNA2 chromosome'],int(line['RNA2 from'])/seglen*seglen,
                 line['RNA2 strand'])
+
             counts[t_reg] = int(line['interactions'])
     return counts
 
@@ -120,7 +126,7 @@ def plot_scatter(chimera, singles, chisum, lorder, figname, mincount):
             xvec, yvec, xscale = 'log', yscale = 'log', bins='log', mincnt=1,
             gridsize=(50,50))
 #        grd.cbar_axes[i*lln+j].colorbar(im)
-#        grd[i*lln + j].text(10, 10e3, "r=%.2f p=%.2g"%(spr[0], spr[1]), size=6)
+        grd[i*lln + j].text(10, 10e4, "r=%.2f"%(spr[0]), size=6, color='m')
         grd[i*lln + j].set_xlim([-10, 10e5])
         grd[i*lln + j].set_ylim([-10, 10e5])
         grd[i*lln + j].set_yscale('log')
@@ -155,10 +161,10 @@ def plot_scatter(chimera, singles, chisum, lorder, figname, mincount):
                     chimera, chimera, grid, i, j, l1, l2, lln)[0]
             xlabel(l1)
             ylabel(l2)
-    rcParams.update({'font.size': 6})
+    rcParams.update({'font.size': 8})
     for ax in fig.get_axes():
         ax.tick_params(which='minor', direction='out')
-    savefig(figname)
+    savefig(figname, dpi=300)
     return corrs
 
 
@@ -176,12 +182,15 @@ def main(argv=None):
         for line in fin:
             lname, fname, singname = line.strip().split()
             libnames.append(lname)
-            lib_counts[lname] = get_regions_counts(fname, settings.seglen)
-            lib_singles[lname] = get_singles_counts(singname, settings.seglen)
-            lib_counts_sum[lname] = get_singles_counts(fname, settings.seglen)
+            lib_counts[lname] = get_regions_counts(
+                fname, settings.seglen, settings.counts)
+            lib_singles[lname] = get_singles_counts(
+                singname, settings.seglen, settings.counts)
+            lib_counts_sum[lname] = get_singles_counts(
+                fname, settings.seglen, settings.counts)
     corrs = plot_scatter(
         lib_counts, lib_singles, lib_counts_sum, libnames,
-        "%s_scatters.tif"%settings.output_head, settings.counts, dpi=300)
+        "%s_scatters.tif"%settings.output_head, settings.counts)
     # Plot the heatmap of the correlations
     fig = figure()
     ax = fig.add_subplot(111)

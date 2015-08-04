@@ -353,7 +353,8 @@ def get_unmapped_reads(
     (assume equal in bam file)
     If rev is set assume first read is the reverse complement and reverse
     complement it, put it as read 2 and treat the second read as read 1.
-    Can handle single-end as well
+    Can handle single-end as well.
+    If all_reads is True, returnt ha names of the reads that are mapped.
     Arguments:
     - `samfile`: Open Samfile object
     - `outfile1`: Open fastq file for reads 1
@@ -365,6 +366,7 @@ def get_unmapped_reads(
     - `all_reads`: Return all reads, including mapped ones
     - `dust_thr`: DUST filter threshold. If=0, not applied.
     """
+    single_mapped = set()
     for read in samfile.fetch(until_eof=True):
         if (not read.is_paired) and (read.is_unmapped or all_reads):
             if read.is_reverse:
@@ -375,6 +377,8 @@ def get_unmapped_reads(
             if reverse_seq:
                 cseq = str(Seq(cseq).reverse_complement())
                 cqual = cqual[::-1]
+            if all_reads and (not read.is_unmapped):
+                single_mapped.add(read.qname)
             if cseq.count('G', 0, length) >= int(maxG*length) or\
                     cseq.count('G', -length) >= int(maxG*length):
                 continue
@@ -387,6 +391,9 @@ def get_unmapped_reads(
             continue
         if (all_reads or read.is_unmapped or read.mate_is_unmapped or\
                 (not read.is_proper_pair)) and read.is_paired:
+            if all_reads and not (read.is_unmapped or read.mate_is_unmapped or\
+                (not read.is_proper_pair)):
+                single_mapped.add(read.qname)
             if read.is_read1==rev:
                 ouf = outfile2
                 outseq = Seq(read.seq)
@@ -412,7 +419,7 @@ def get_unmapped_reads(
             # test if read passes DUST filter
             if pass_dust_filter(outseq, dust_thr):
                 ouf.write("@%s\n%s\n+\n%s\n"%(read.qname, outseq, outqual))
-
+    return single_mapped
 
 def pass_dust_filter(seq, thr):
     """
@@ -601,7 +608,7 @@ def read_bam_file(bamfile, chrnames_bam, max_NM=0):
 
 def write_reads_table(
     outfile, read1_reads, read2_reads, chrnames_bam, maxdist,
-    remove_self, trans_gff=None, write_single=None):
+    remove_self, trans_gff=None, write_single=None, single_mapped=None):
     """
     Read the lists of reads and print a list of chimeric fragments after
     removing concordant reads
@@ -615,6 +622,8 @@ def write_reads_table(
     - `remove_self`: Remove circular RNAs
     - `trans_gff`: A dictionary with transcripts positions, optional
     - `write_single`: Write reads that are not chimeric to this file
+    - `single_mapped`: A set with read names of fragments that were originally
+                       mapped as single
     """
     
 
@@ -631,6 +640,11 @@ def write_reads_table(
                 write_to = write_single
                 read_type = "single"
             else:
+                continue
+        else:
+            # If it was originally mapped as single and now as chimeric
+            # ignore this read
+            if single_mapped and rname in single_mapped:
                 continue
         read1_chrn = chrnames_bam[read1_reads[rname].tid]
         read2_chrn = chrnames_bam[read2_reads[rname].tid]
